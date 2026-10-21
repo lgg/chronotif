@@ -1,0 +1,37 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and OS version
+      placeholder: "Xiaomi 17T Pro, HyperOS 3.0 (Android 16)"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Chronotif version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options: [Panel, Lock screen, Edge handle, Quick Settings tile, Setup / permissions, Install]
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Extra details
+      description: Which app posted the notification, screenshots, logs. Please don't include private notification text.

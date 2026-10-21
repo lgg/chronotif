@@ -186,3 +186,15 @@ app/src/main/java/app/chronotif/
   ui/LockActivity.kt    the lock-screen view
   ui/SetupActivity.kt   one-time setup & settings
 ```
+
+## Contributing
+
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground
+rules (local-first, no network, lightweight) and [SECURITY.md](SECURITY.md) to report
+vulnerabilities privately.
+
+## License
+
+Chronotif is free software, licensed under the **GNU General Public License v3.0 or later**
+(GPL-3.0-or-later). See [LICENSE](LICENSE). You may use, study, modify and share it. Modified
+versions you distribute must stay open source under the same license.

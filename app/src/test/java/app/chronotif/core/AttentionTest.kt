@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package app.chronotif.core
 
 import org.junit.Assert.assertEquals
