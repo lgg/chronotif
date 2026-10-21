@@ -58,10 +58,22 @@ storage and excluded from backups.
 ## Install
 
 1. Download `chronotif-vX.Y.Z.apk` from
-   [Releases](../../releases) (verify against the `.sha256` file if you like) and install it.
+   [Releases](../../releases) (verify against the `.sha256` file if you like) and open it from
+   your file manager or browser. Allow "install unknown apps" for that app if asked.
+   If it ends with just **"App not installed"**, see [Play Protect](#app-not-installed-google-play-protect) below.
 2. Open **Chronotif** and work through *Permissions*:
-   - **Notification access**: on Android 13+ a sideloaded app's toggle is greyed out at first.
-     Go to *App info → ⋮ → Allow restricted settings*, then grant it.
+   - **Notification access.** Android 13+ blocks this for apps installed outside the Play
+     Store, so the first attempt shows **"App was denied access: access to this permission
+     can put your personal and financial info at risk"** (or a greyed-out toggle). That is
+     expected. Press **Close**, then allow it once:
+     1. Open **Settings → Apps → Chronotif** (or long-press the app icon → *App info*).
+     2. Tap **⋮** (top right) → **Allow restricted settings**, and confirm with your PIN or
+        fingerprint if asked.
+     3. Go back to Chronotif and tap **Grant** on *Notification access* again; this time the
+        toggle works.
+
+     The **⋮** menu only offers *Allow restricted settings* after you have tried to enable the
+     permission once. If you don't see it, try the toggle first, then come back.
    - **Display over other apps**: for the edge handle and the lock-screen view.
 3. Optional: add the **Notifications** Quick Settings tile (button in setup on Android 13+).
 
