@@ -1,0 +1,50 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # only used on tags, to publish the release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Decode signing key
+        if: startsWith(github.ref, 'refs/tags/v') && env.KEYSTORE_B64 != ''
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "CHRONOTIF_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Build and test
+        env:
+          CHRONOTIF_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          CHRONOTIF_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          CHRONOTIF_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleRelease
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk="chronotif-${GITHUB_REF_NAME}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$apk"
+          sha256sum "$apk" > "$apk.sha256"
+          gh release create "$GITHUB_REF_NAME" "$apk" "$apk.sha256" --generate-notes

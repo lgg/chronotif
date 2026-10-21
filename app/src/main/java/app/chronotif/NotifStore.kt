@@ -1,0 +1,128 @@
+package app.chronotif
+
+import android.app.Notification
+import android.os.Handler
+import android.os.Looper
+import android.service.notification.NotificationListenerService.Ranking
+import android.service.notification.NotificationListenerService.RankingMap
+import android.service.notification.StatusBarNotification
+import app.chronotif.core.AlertClock
+import app.chronotif.core.Attention
+import app.chronotif.core.Meta
+
+class Entry(
+    val sbn: StatusBarNotification,
+    var ranking: Ranking,
+    override val alertTime: Long,
+) : Meta {
+    val key: String get() = sbn.key
+    val n: Notification get() = sbn.notification
+    val pkg: String get() = sbn.packageName
+    override val stackId = "${sbn.packageName}|${sbn.user.hashCode()}"
+    override val ongoing =
+        sbn.isOngoing || n.flags and Notification.FLAG_FOREGROUND_SERVICE != 0
+    val clearable: Boolean get() = sbn.isClearable
+    val isSummary get() = n.flags and Notification.FLAG_GROUP_SUMMARY != 0
+    /** Includes the system's auto-grouping, so its empty summaries can be hidden too. */
+    val groupId: String? get() = if (sbn.isGroup) sbn.groupKey else null
+}
+
+/**
+ * In-memory mirror of the active notifications, fed by [ListenerService].
+ * Everything runs on the main thread (listener callbacks are delivered there).
+ * Nothing here is persisted.
+ */
+object NotifStore {
+    private val entries = LinkedHashMap<String, Entry>()
+    private val clock = AlertClock()
+    private val listeners = ArrayList<() -> Unit>()
+    private val main = Handler(Looper.getMainLooper())
+    private var pending = false
+
+    var connected = false
+        private set
+
+    fun get(key: String): Entry? = entries[key]
+
+    /** What the UI shows: group summaries with children, suspended apps and DND-hidden ones drop out. */
+    fun visible(): List<Entry> {
+        val groupsWithChildren = HashSet<String>()
+        for (e in entries.values) if (!e.isSummary) e.groupId?.let(groupsWithChildren::add)
+        return entries.values.filter { e ->
+            e.pkg != BuildConfig.APPLICATION_ID &&
+                !e.ranking.isSuspended &&
+                e.ranking.suppressedVisualEffects and
+                android.app.NotificationManager.Policy.SUPPRESSED_EFFECT_NOTIFICATION_LIST == 0 &&
+                !(e.isSummary && e.groupId in groupsWithChildren)
+        }
+    }
+
+    fun newCount(): Int {
+        val lastCheck = Prefs.lastCheck
+        return visible().count { Attention.isNew(it, lastCheck) }
+    }
+
+    fun connect(active: Array<StatusBarNotification>?, map: RankingMap) {
+        connected = true
+        entries.clear()
+        clock.clear()
+        active?.sortedBy { it.postTime }?.forEach { put(it, map) }
+        changed()
+    }
+
+    fun disconnect() {
+        connected = false
+        entries.clear()
+        clock.clear()
+        changed()
+    }
+
+    fun post(sbn: StatusBarNotification, map: RankingMap) {
+        put(sbn, map)
+        changed()
+    }
+
+    fun remove(key: String, map: RankingMap?) {
+        entries.remove(key)
+        clock.onRemoved(key)
+        map?.let(::rerank)
+        changed()
+    }
+
+    fun rank(map: RankingMap) {
+        rerank(map)
+        changed()
+    }
+
+    fun addListener(l: () -> Unit) {
+        listeners += l
+    }
+
+    fun removeListener(l: () -> Unit) {
+        listeners -= l
+    }
+
+    /** Coalesces bursts (apps often post several notifications at once) into one UI update. */
+    fun changed() {
+        if (pending) return
+        pending = true
+        main.post {
+            pending = false
+            listeners.toList().forEach { it() }
+        }
+    }
+
+    private fun put(sbn: StatusBarNotification, map: RankingMap) {
+        val n = sbn.notification
+        val quiet = n.flags and Notification.FLAG_ONLY_ALERT_ONCE != 0 || sbn.isOngoing
+        val alertTime = clock.onPosted(sbn.key, sbn.postTime, Content.signature(n), quiet)
+        entries.remove(sbn.key)
+        entries[sbn.key] = Entry(sbn, rankingOf(sbn.key, map), alertTime)
+    }
+
+    private fun rerank(map: RankingMap) {
+        for (e in entries.values) e.ranking = rankingOf(e.key, map)
+    }
+
+    private fun rankingOf(key: String, map: RankingMap) = Ranking().also { map.getRanking(key, it) }
+}

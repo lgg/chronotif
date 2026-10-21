@@ -1,0 +1,38 @@
+package app.chronotif
+
+import android.annotation.SuppressLint
+import android.app.PendingIntent
+import android.content.Intent
+import android.os.Build
+import android.service.quicksettings.Tile
+import android.service.quicksettings.TileService
+import app.chronotif.ui.PanelActivity
+
+/** Quick Settings tile: a second way into the panel, showing how many are new. */
+class PanelTile : TileService() {
+
+    override fun onStartListening() {
+        val tile = qsTile ?: return
+        val fresh = NotifStore.newCount()
+        tile.state = if (fresh > 0) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
+        tile.subtitle = if (fresh > 0) getString(R.string.tile_new, fresh) else getString(R.string.tile_nothing_new)
+        tile.updateTile()
+    }
+
+    override fun onClick() {
+        if (isLocked) unlockAndRun(::launch) else launch()
+    }
+
+    @SuppressLint("StartActivityAndCollapseDeprecated")
+    @Suppress("DEPRECATION")
+    private fun launch() {
+        val intent = Intent(this, PanelActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (Build.VERSION.SDK_INT >= 34) {
+            startActivityAndCollapse(
+                PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE),
+            )
+        } else {
+            startActivityAndCollapse(intent)
+        }
+    }
+}
