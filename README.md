@@ -67,6 +67,22 @@ storage and excluded from backups.
 
 After that you never need to open the app again. Use the edge handle or the tile.
 
+### "App not installed" (Google Play Protect)
+
+Installing an unknown, newly released app from a file manager can fail with a bare
+"App not installed" (in `adb logcat`: `INSTALL_FAILED_VERIFICATION_FAILURE: Install not
+allowed`). This comes from **Google Play Protect**, not from a problem with the APK. It asks to
+upload the unknown app for scanning, and rejects the install when upload consent is off.
+
+Any one of these fixes it:
+
+- Open **Play Store → profile icon → Play Protect → ⚙ settings** and turn on
+  **Improve harmful app detection** (lets it send unknown apps to Google for scanning), then
+  install again; or
+- Temporarily turn off **Scan apps with Play Protect** in the same screen, install, turn it
+  back on; or
+- Install over USB with `adb install chronotif-vX.Y.Z.apk`, which skips the on-device check.
+
 ### Xiaomi / HyperOS / MIUI (Poco X3 NFC, Xiaomi 17T Pro)
 
 Xiaomi adds its own permission layer. In setup, the *Xiaomi permissions* and *Xiaomi autostart*
