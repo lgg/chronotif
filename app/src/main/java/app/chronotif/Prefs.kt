@@ -53,4 +53,14 @@ object Prefs {
     var lockHideContent: Boolean
         get() = sp.getBoolean("lock_hide_content", false)
         set(v) = sp.edit().putBoolean("lock_hide_content", v).apply()
+
+    /** Opt-in: check GitHub Releases daily and install newer versions. */
+    var autoUpdate: Boolean
+        get() = sp.getBoolean("auto_update", false)
+        set(v) = sp.edit().putBoolean("auto_update", v).apply()
+
+    /** A version that failed to install; automatic checks skip it until a manual retry. */
+    var updateFailedVersion: String?
+        get() = sp.getString("update_failed_version", null)
+        set(v) = sp.edit().putString("update_failed_version", v).apply()
 }

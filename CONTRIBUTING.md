@@ -7,10 +7,13 @@ translations and accessibility improvements are always welcome.
 
 ## Principles (please keep these true)
 
-- **Local-first and private.** No `INTERNET` permission, accounts, analytics, crash reporters,
-  or network code. A PR that adds any of these won't be merged.
-- **Lightweight.** No polling, wakelocks, alarms, jobs or foreground services. Work happens in
-  response to system events only. Avoid dependencies; the app currently has none.
+- **Local-first and private.** No accounts, analytics or crash reporters, and nothing about
+  the user or their notifications ever leaves the device. The only network code is the
+  opt-in updater (`Updater.kt`), which only downloads public GitHub Releases. A PR that adds
+  other network use won't be merged.
+- **Lightweight.** No polling, wakelocks, alarms or foreground services. Work happens in
+  response to system events. The one exception is the opt-in daily update job. Avoid
+  dependencies; the app currently has none.
 - **Respect lock-screen privacy.** Anything shown on the lock screen must follow the
   system and per-app visibility rules (`LockPolicy`), and interactions must require unlock.
 
