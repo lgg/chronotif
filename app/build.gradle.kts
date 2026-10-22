@@ -14,8 +14,10 @@ android {
         applicationId = "app.chronotif"
         minSdk = 30
         targetSdk = 36
-        versionCode = 1
+        // Only bump versionName; versionCode follows it (0.1.0 -> 100, 1.2.3 -> 10203) so every
+        // release can install over the last one. Tag releases as v<versionName>.
         versionName = "0.1.0"
+        versionCode = versionName!!.split('.').map(String::toInt).fold(0) { acc, p -> acc * 100 + p }
     }
 
     signingConfigs {

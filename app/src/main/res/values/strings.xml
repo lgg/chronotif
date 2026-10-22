@@ -64,6 +64,27 @@
     <string name="lock_privacy_desc">Always hide content on the lock screen. When off, Chronotif follows the system setting and each app\'s privacy choice. Opening, replying and actions always require unlocking.</string>
 
     <string name="setup_privacy">Privacy</string>
-    <string name="privacy_body">No internet permission, no accounts, no analytics. Everything stays on this device. Only the time of your last check and these settings are stored.</string>
+    <string name="privacy_body">No accounts, no analytics. Notifications never leave this device. Only the time of your last check and these settings are stored. The only network use is the optional update check below, which downloads from GitHub and sends nothing.</string>
+
+    <string name="setup_updates">Updates</string>
+    <string name="update_auto">Update automatically</string>
+    <string name="update_auto_desc">Once a day, check GitHub Releases for a new version and install it. Android asks you to confirm unless “Install unknown apps” is allowed for Chronotif.</string>
+    <string name="perm_install">Install unknown apps</string>
+    <string name="perm_install_desc">Lets updates install without asking each time (Android 12+).</string>
+    <string name="update_check_now">Check for updates</string>
+    <string name="update_channel">Updates</string>
+    <string name="update_busy">Already checking…</string>
+    <string name="update_checking">Checking for updates…</string>
+    <string name="update_none">You\'re up to date (%s).</string>
+    <string name="update_skipped">%s failed to install before. Tap “Check for updates” to retry.</string>
+    <string name="update_downloading">Downloading %s…</string>
+    <string name="update_installing">Installing %s…</string>
+    <string name="update_error">Update check failed: %s</string>
+    <string name="update_ready_title">Chronotif %s is available</string>
+    <string name="update_ready_body">Tap to install the update.</string>
+    <string name="update_done_title">Chronotif updated to %s</string>
+    <string name="update_done_body">See what\'s new on GitHub Releases.</string>
+    <string name="update_failed_title">Couldn\'t install Chronotif %s</string>
+    <string name="update_failed_signature">The update is signed with a different key than this install. Uninstall and install it manually from GitHub Releases.</string>
     <string name="version">Version %s</string>
 </resources>

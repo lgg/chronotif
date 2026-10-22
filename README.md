@@ -15,8 +15,9 @@ You interact with the **real** notifications: tap to open, swipe sideways to dis
 place (big text, inbox lines, conversations, pictures, progress), use the app's actions, and
 reply inline.
 
-No internet permission, no accounts, no analytics, no backend. The APK is ~120 KB with zero
-third-party dependencies.
+No accounts, no analytics, no backend, and notifications never leave the device. The only
+network code is an **opt-in** update check against this repo's GitHub Releases (off by default).
+The APK is ~140 KB with zero third-party dependencies.
 
 ## How it works
 
@@ -28,7 +29,8 @@ third-party dependencies.
 | Panel | The shade-like screen: blurred backdrop, NEW / Ongoing / EARLIER | Exists only while open |
 | Lock-screen view | Shown over the locked keyguard when the screen turns on | Started only on screen-on |
 
-No foreground service, wakelocks, alarms, jobs or network.
+No foreground service, wakelocks or alarms. The only scheduled work is the once-a-day update
+check, and only if you turn it on.
 
 ### What counts as a "meaningful check"
 
@@ -78,6 +80,23 @@ storage and excluded from backups.
 3. Optional: add the **Notifications** Quick Settings tile (button in setup on Android 13+).
 
 After that you never need to open the app again. Use the edge handle or the tile.
+
+### Updates
+
+Turn on *Settings → Updates → Update automatically* and Chronotif checks GitHub Releases once
+a day. When there's a newer version it downloads the APK, checks it against the release's
+`.sha256` file and installs it:
+
+- If **Install unknown apps** is allowed for Chronotif (Android 12+), the update installs
+  silently and you get an "updated" notification.
+- Otherwise you get an "update available" notification. Tap it to confirm the install.
+
+*Check for updates* does the same thing on demand. The check reads the public release list
+and sends nothing about you or your notifications. Android only accepts an update signed with
+the same key as the installed app, so a tampered APK can't install.
+
+Updating from **v0.1.0** has to be done by hand once: uninstall it, then install the new
+version. v0.1.0 has no updater and was signed with a temporary key.
 
 ### "App not installed" (Google Play Protect)
 
@@ -155,17 +174,21 @@ export CHRONOTIF_KEYSTORE=$PWD/release.jks CHRONOTIF_KEYSTORE_PASSWORD=… \
 ./gradlew assembleRelease
 ```
 
-Keep the keystore safe and out of git. Android only installs updates signed with the same key.
+Keep the keystore safe and out of git. Android only installs updates signed with the same key,
+so losing it means every user has to uninstall and reinstall.
 
 ### Releasing on GitHub
 
 `.github/workflows/build.yml` builds and tests every push and PR. Pushing a `v*` tag also publishes
-a GitHub Release with the APK and its SHA-256. Add these repository secrets for signed
-releases: `KEYSTORE_B64` (`base64 -w0 release.jks`), `KEYSTORE_PASSWORD`, `KEY_ALIAS`,
-`KEY_PASSWORD`.
+a GitHub Release with the APK and its SHA-256, which the in-app updater picks up. Tag builds
+require these repository secrets (the job fails without them): `KEYSTORE_B64`
+(`base64 -w0 release.jks`), `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`.
+
+To release, bump `versionName` in `app/build.gradle.kts` (`versionCode` is derived from it),
+commit, and push a matching tag:
 
 ```sh
-git tag v0.1.0 && git push origin v0.1.0
+git tag v0.2.0 && git push origin v0.2.0
 ```
 
 ## Code map
@@ -180,6 +203,8 @@ app/src/main/java/app/chronotif/
   LockPolicy.kt         when the lock view appears and what it may reveal
   Content.kt            extracting text/messages/pictures from notifications; app labels & icons
   Act.kt                open / dismiss / action / inline reply
+  Updater.kt            opt-in self-update from GitHub Releases (the only network code)
+  core/Version.kt       version comparison and checksum parsing (unit-tested)
   ui/NotifList.kt       renders sections with keyed view reuse (shared by panel and lock view)
   ui/CardView.kt        notification card and collapsed stack
   ui/PanelActivity.kt   the panel
@@ -190,7 +215,7 @@ app/src/main/java/app/chronotif/
 ## Contributing
 
 Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground
-rules (local-first, no network, lightweight) and [SECURITY.md](SECURITY.md) to report
+rules (local-first, lightweight) and [SECURITY.md](SECURITY.md) to report
 vulnerabilities privately.
 
 ## License

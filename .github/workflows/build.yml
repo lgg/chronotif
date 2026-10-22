@@ -24,6 +24,15 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      # Releases must be signed with the same key every time, or the in-app updater (and Android)
+      # refuse to install them over the previous version. The runner's debug key is random.
+      - name: Check release tag and signing key
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          [ -n "$KEYSTORE_B64" ] || { echo "::error::KEYSTORE_B64 secret is missing"; exit 1; }
+          name=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' app/build.gradle.kts)
+          [ "v$name" = "$GITHUB_REF_NAME" ] || { echo "::error::tag $GITHUB_REF_NAME != versionName $name"; exit 1; }
+
       - name: Decode signing key
         if: startsWith(github.ref, 'refs/tags/v') && env.KEYSTORE_B64 != ''
         run: |

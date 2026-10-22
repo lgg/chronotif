@@ -29,6 +29,7 @@ import app.chronotif.ListenerService
 import app.chronotif.PanelTile
 import app.chronotif.Prefs
 import app.chronotif.R
+import app.chronotif.Updater
 
 /** One-time setup and settings. Not needed in daily use. */
 @Suppress("SetTextI18n")
@@ -59,6 +60,12 @@ class SetupActivity : Activity() {
     override fun onResume() {
         super.onResume()
         refreshers.forEach { it() }
+        Updater.foreground = true
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Updater.foreground = false
     }
 
     private fun build() {
@@ -156,6 +163,31 @@ class SetupActivity : Activity() {
             Prefs.lockHideContent = it
         }
 
+        section(R.string.setup_updates)
+        toggle(R.string.update_auto, R.string.update_auto_desc, { Prefs.autoUpdate }) {
+            Prefs.autoUpdate = it
+            Updater.sync(this)
+            if (it && Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 0)
+            refreshers.forEach { r -> r() }
+        }
+        val install = permission(R.string.perm_install, R.string.perm_install_desc,
+            granted = { packageManager.canRequestPackageInstalls() }) {
+            open(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+        }
+        refreshers += { install.visibility = if (Prefs.autoUpdate) View.VISIBLE else View.GONE }
+        val updateStatus = text("", 13f, secondary = true).apply { visibility = View.GONE }
+        body.addView(Button(this).apply {
+            setText(R.string.update_check_now)
+            setOnClickListener {
+                isEnabled = false
+                Updater.run(context, manual = true, onStatus = {
+                    updateStatus.text = it
+                    updateStatus.visibility = View.VISIBLE
+                }, done = { isEnabled = true })
+            }
+        }, gap(8).apply { width = -2 })
+        body.addView(updateStatus, gap(4))
+
         section(R.string.setup_privacy)
         body.addView(text(getString(R.string.privacy_body), 15f, secondary = true), gap(4))
         body.addView(text(getString(R.string.version, BuildConfig.VERSION_NAME), 13f, secondary = true), gap(12))
@@ -208,7 +240,7 @@ class SetupActivity : Activity() {
         }, gap(28))
     }
 
-    private fun permission(title: Int, desc: Int, granted: (() -> Boolean)?, onClick: () -> Unit) {
+    private fun permission(title: Int, desc: Int, granted: (() -> Boolean)?, onClick: () -> Unit): View {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -233,6 +265,7 @@ class SetupActivity : Activity() {
         }
         refresh()
         refreshers += refresh
+        return row
     }
 
     private fun toggle(title: Int, desc: Int?, value: () -> Boolean, onChange: (Boolean) -> Unit) {
