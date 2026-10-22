@@ -49,7 +49,8 @@
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "Android 11 or newer",
         "license": "https://www.gnu.org/licenses/gpl-3.0.html",
-        "downloadUrl": "https://github.com/nagarete/chronotif/releases",
+        "softwareVersion": "%CHRONOTIF_VERSION%",
+        "downloadUrl": "%CHRONOTIF_APK_URL%",
         "codeRepository": "https://github.com/nagarete/chronotif",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
         "author": { "@type": "Person", "name": "nagarete", "url": "https://github.com/nagarete" }
@@ -95,19 +96,24 @@
             quiet per-app stacks under <strong>Earlier</strong>, still there when you need it.
           </p>
           <div class="cta">
-            <a class="button button--primary" href="https://github.com/nagarete/chronotif/releases">
+            <a class="button button--primary" href="%CHRONOTIF_APK_URL%">
               <svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M10 3v10m0 0-4-4m4 4 4-4M4 16.5h12"/></svg>
               Download for Android
+              <span class="button__meta">%CHRONOTIF_TAG%</span>
             </a>
             <a class="button" href="https://github.com/nagarete/chronotif">View on GitHub</a>
           </div>
           <ul class="facts" aria-label="At a glance">
             <li>Free &amp; open source, GPL-3.0</li>
             <li>Android 11 or newer</li>
-            <li>~140&nbsp;KB APK</li>
+            <li>%CHRONOTIF_APK_SIZE% APK</li>
             <li>Notifications stay on your phone</li>
           </ul>
-          <p class="note">Early release: current builds are 0.x pre-releases, installed from GitHub.</p>
+          <p class="note">
+            Downloads <code>%CHRONOTIF_APK_NAME%</code>, the newest %CHRONOTIF_RELEASE_KIND%.
+            <a href="%CHRONOTIF_RELEASE_URL%">Release notes &amp; checksum</a> ·
+            <a href="https://github.com/nagarete/chronotif/releases">All releases</a>
+          </p>
         </div>
 
         <div class="hero__visual">
@@ -391,8 +397,8 @@
             <li>
               <h3>Download the APK</h3>
               <p>
-                Get <code>chronotif-vX.Y.Z.apk</code> from
-                <a href="https://github.com/nagarete/chronotif/releases">GitHub Releases</a> (a
+                Get <a href="%CHRONOTIF_APK_URL%"><code>%CHRONOTIF_APK_NAME%</code></a> from its
+                <a href="%CHRONOTIF_RELEASE_URL%">GitHub release</a> (a
                 <code>.sha256</code> file is alongside if you want to verify it) and open it. If asked,
                 allow your browser or file manager to install unknown apps.
               </p>
@@ -558,7 +564,7 @@
       <section class="closing wrap" aria-labelledby="closing-title">
         <h2 id="closing-title">Catch up once. <em>Then let it rest.</em></h2>
         <div class="cta">
-          <a class="button button--primary" href="https://github.com/nagarete/chronotif/releases">Download for Android</a>
+          <a class="button button--primary" href="%CHRONOTIF_APK_URL%">Download for Android <span class="button__meta">%CHRONOTIF_TAG%</span></a>
           <a class="button" href="https://github.com/nagarete/chronotif">View on GitHub</a>
         </div>
       </section>

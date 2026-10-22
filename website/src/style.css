@@ -232,6 +232,12 @@ q {
   border-color: transparent;
   background: #fff;
 }
+.button__meta {
+  margin-left: 0.15rem;
+  font-weight: 500;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
 .button--small {
   min-height: 2.5rem;
   padding: 0.5rem 1rem;
