@@ -1,0 +1,56 @@
+<!doctype html>
+<!-- Source for public/og.png (1200×630). Rendered by scripts/og-image.mjs. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face {
+        font-family: "Newsreader";
+        src: url(../node_modules/@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2) format("woff2");
+        font-weight: 200 800;
+      }
+      @font-face {
+        font-family: "Newsreader";
+        font-style: italic;
+        src: url(../node_modules/@fontsource-variable/newsreader/files/newsreader-latin-wght-italic.woff2) format("woff2");
+        font-weight: 200 800;
+      }
+      html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+      body {
+        position: relative;
+        background: #0b0c0e;
+        color: #f4f4f6;
+        font-family: system-ui, Roboto, Arial, sans-serif;
+      }
+      .copy { position: absolute; left: 80px; top: 92px; width: 560px; }
+      .brand { display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 650; }
+      .brand img { width: 48px; height: 48px; border-radius: 11px; }
+      h1 {
+        margin: 56px 0 0;
+        font: 450 76px/1.02 "Newsreader", Georgia, serif;
+        letter-spacing: -0.015em;
+      }
+      h1 em { display: block; color: rgba(235, 235, 245, 0.66); }
+      p { margin: 36px 0 0; color: rgba(235, 235, 245, 0.66); font-size: 24px; }
+      .glow {
+        position: absolute; right: -40px; top: 40px; width: 560px; height: 560px;
+        background: radial-gradient(closest-side, rgba(10, 132, 255, 0.18), transparent);
+      }
+      .phone {
+        position: absolute; right: 96px; top: 64px; width: 300px;
+        padding: 8px; border-radius: 40px; background: #1a1b1e;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      }
+      .phone img { display: block; width: 100%; border-radius: 33px; }
+    </style>
+  </head>
+  <body>
+    <div class="glow"></div>
+    <div class="copy">
+      <div class="brand"><img src="../public/favicon.svg" alt="" />Chronotif</div>
+      <h1>What’s new stays in front. <em>The rest steps back.</em></h1>
+      <p>Open-source notifications for Android · private by design</p>
+    </div>
+    <div class="phone"><img src="../public/screens/panel-800.webp" alt="" /></div>
+  </body>
+</html>

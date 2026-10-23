@@ -1,0 +1,5 @@
+node_modules/
+dist/
+# Raw device screenshots contain private notifications. Never commit or publish them;
+# run `npm run screens` to produce the blurred copies in public/screens/.
+screenshots-raw/

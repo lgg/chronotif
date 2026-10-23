@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chronotif: calm, chronological notifications for Android</title>
+    <meta
+      name="description"
+      content="Chronotif is a free, open-source Android app that shows what arrived since you last checked under New, and folds what you've already seen into quiet per-app stacks. No accounts, no analytics, and your notifications never leave your phone."
+    />
+    <link rel="canonical" href="https://chronotif.com/" />
+    <meta name="theme-color" content="#0b0c0e" />
+    <meta name="color-scheme" content="dark" />
+
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Chronotif" />
+    <meta property="og:url" content="https://chronotif.com/" />
+    <meta property="og:title" content="Chronotif: calm, chronological notifications for Android" />
+    <meta
+      property="og:description"
+      content="What's new stays in front. What you've already seen steps back. A free, open-source notification panel and lock-screen view for Android that keeps your notifications on your phone."
+    />
+    <meta property="og:image" content="https://chronotif.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Chronotif's notification panel on an Android phone, with New, Ongoing and Earlier sections."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Chronotif: calm, chronological notifications for Android" />
+    <meta
+      name="twitter:description"
+      content="What's new stays in front. What you've already seen steps back. Free, open source, and private by design."
+    />
+    <meta name="twitter:image" content="https://chronotif.com/og.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Chronotif",
+        "url": "https://chronotif.com/",
+        "description": "A chronological notification panel and lock-screen view for Android. New notifications stay prominent; ones you've already seen fold into per-app stacks.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Android 11 or newer",
+        "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+        "softwareVersion": "%CHRONOTIF_VERSION%",
+        "downloadUrl": "%CHRONOTIF_APK_URL%",
+        "codeRepository": "https://github.com/nagarete/chronotif",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "author": { "@type": "Person", "name": "nagarete", "url": "https://github.com/nagarete" }
+      }
+    </script>
+
+    <link rel="stylesheet" href="/src/style.css" />
+    <script type="module" src="/src/main.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="masthead">
+      <div class="wrap masthead__inner">
+        <a class="brand" href="/" aria-label="Chronotif home">
+          <img src="/favicon.svg" alt="" width="28" height="28" />
+          <span>Chronotif</span>
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <ul>
+            <li><a href="#how-it-works">How it works</a></li>
+            <li><a href="#privacy">Privacy</a></li>
+            <li><a href="#install">Install</a></li>
+            <li><a href="#faq">FAQ</a></li>
+          </ul>
+        </nav>
+        <a class="masthead__gh" href="https://github.com/nagarete/chronotif">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="18" height="18"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Hero -->
+      <section class="hero wrap" aria-labelledby="hero-title">
+        <div class="hero__copy">
+          <p class="label"><span>New</span> Open source, for Android</p>
+          <h1 id="hero-title">What’s new stays in front. <em>The rest steps back.</em></h1>
+          <p class="lede">
+            Chronotif shows your notifications in the order they arrived. Everything since you last
+            checked appears in full under <strong>New</strong>. What you’ve already seen folds into
+            quiet per-app stacks under <strong>Earlier</strong>, still there when you need it.
+          </p>
+          <div class="cta">
+            <a class="button button--primary" href="%CHRONOTIF_APK_URL%">
+              <svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M10 3v10m0 0-4-4m4 4 4-4M4 16.5h12"/></svg>
+              Download for Android
+              <span class="button__meta">%CHRONOTIF_TAG%</span>
+            </a>
+            <a class="button" href="https://github.com/nagarete/chronotif">View on GitHub</a>
+          </div>
+          <ul class="facts" aria-label="At a glance">
+            <li>Free &amp; open source, GPL-3.0</li>
+            <li>Android 11 or newer</li>
+            <li>%CHRONOTIF_APK_SIZE% APK</li>
+            <li>Notifications stay on your phone</li>
+          </ul>
+          <p class="note">
+            Downloads <code>%CHRONOTIF_APK_NAME%</code>, the newest %CHRONOTIF_RELEASE_KIND%.
+            <a href="%CHRONOTIF_RELEASE_URL%">Release notes &amp; checksum</a> ·
+            <a href="https://github.com/nagarete/chronotif/releases">All releases</a>
+          </p>
+        </div>
+
+        <div class="hero__visual">
+          <figure class="phone phone--back">
+            <img
+              src="/screens/lock-new-480.webp"
+              srcset="/screens/lock-new-480.webp 480w, /screens/lock-new-800.webp 800w"
+              sizes="(min-width: 960px) 240px, 42vw"
+              width="480" height="1040"
+              alt="Chronotif on the lock screen: five new notifications under New, and ongoing items below."
+            />
+          </figure>
+          <figure class="phone phone--front">
+            <img
+              src="/screens/panel-480.webp"
+              srcset="/screens/panel-480.webp 480w, /screens/panel-800.webp 800w"
+              sizes="(min-width: 960px) 300px, 54vw"
+              width="480" height="1040"
+              fetchpriority="high"
+              alt="Chronotif's notification panel: two notifications under New 2, then a compact Ongoing section."
+            />
+          </figure>
+        </div>
+      </section>
+
+      <!-- Real screenshots -->
+      <section class="section" id="screens" aria-labelledby="screens-title">
+        <div class="wrap">
+          <header class="section__head">
+            <p class="label">On a real phone</p>
+            <h2 id="screens-title">The same calm order, in the panel and on the lock screen.</h2>
+          </header>
+          <ol class="gallery">
+            <li>
+              <figure>
+                <div class="phone">
+                  <img
+                    src="/screens/panel-480.webp"
+                    srcset="/screens/panel-480.webp 480w, /screens/panel-800.webp 800w"
+                    sizes="(min-width: 960px) 300px, (min-width: 640px) 30vw, 72vw"
+                    width="480" height="1040" loading="lazy"
+                    alt="The panel: New 2 at the top, then Ongoing items such as a step counter and a connected watch."
+                  />
+                </div>
+                <figcaption>
+                  <strong>The panel.</strong> Opened from the edge handle or the Quick Settings tile.
+                  New notifications in full, ongoing ones compact underneath.
+                </figcaption>
+              </figure>
+            </li>
+            <li>
+              <figure>
+                <div class="phone">
+                  <img
+                    src="/screens/lock-new-480.webp"
+                    srcset="/screens/lock-new-480.webp 480w, /screens/lock-new-800.webp 800w"
+                    sizes="(min-width: 960px) 300px, (min-width: 640px) 30vw, 72vw"
+                    width="480" height="1040" loading="lazy"
+                    alt="The lock-screen view: the clock, then New 5 with five notifications, then Ongoing."
+                  />
+                </div>
+                <figcaption>
+                  <strong>The lock screen.</strong> When the screen turns on, what’s new is up
+                  front, shown over the still-locked keyguard.
+                </figcaption>
+              </figure>
+            </li>
+            <li>
+              <figure>
+                <div class="phone">
+                  <img
+                    src="/screens/lock-earlier-480.webp"
+                    srcset="/screens/lock-earlier-480.webp 480w, /screens/lock-earlier-800.webp 800w"
+                    sizes="(min-width: 960px) 300px, (min-width: 640px) 30vw, 72vw"
+                    width="480" height="1040" loading="lazy"
+                    alt="The lock-screen view scrolled down: Ongoing items, then a single pill reading 30 earlier."
+                  />
+                </div>
+                <figcaption>
+                  <strong>Everything else, folded.</strong> Notifications you’ve already seen wait
+                  behind a single “30&nbsp;earlier” pill.
+                </figcaption>
+              </figure>
+            </li>
+          </ol>
+          <p class="note gallery__note">
+            Screenshots from a Xiaomi 17T Pro in dark mode. Other people’s names, messages and photos
+            are blurred.
+          </p>
+        </div>
+      </section>
+
+      <!-- The model -->
+      <section class="section section--model" id="how-it-works" aria-labelledby="model-title">
+        <div class="wrap model">
+          <div class="model__copy">
+            <header class="section__head">
+              <p class="label">How it works</p>
+              <h2 id="model-title">Sorted by your attention, not by app.</h2>
+            </header>
+
+            <dl class="sections">
+              <div>
+                <dt><span class="tag tag--new">New</span></dt>
+                <dd>
+                  Everything that arrived since your last check, newest first, shown in full. This is
+                  the only part that asks for your attention.
+                </dd>
+              </div>
+              <div>
+                <dt><span class="tag">Ongoing</span></dt>
+                <dd>
+                  Media, navigation, downloads and other ongoing work sit compactly below New. They’re
+                  never counted as new.
+                </dd>
+              </div>
+              <div>
+                <dt><span class="tag tag--earlier">Earlier</span></dt>
+                <dd>
+                  What you’ve already seen. It stays accessible but recedes: smaller, dimmer, and
+                  folded into one stack per app. <em>Clear</em> sweeps it all away.
+                </dd>
+              </div>
+            </dl>
+
+            <h3>What counts as a check</h3>
+            <ul class="ticks">
+              <li>
+                The panel was open for at least 1.5 seconds, or you interacted with it. When it closes,
+                everything it showed moves to Earlier.
+              </li>
+              <li>
+                On the lock screen, a glance isn’t enough. Notifications move to Earlier when you
+                <em>unlock</em> after they were shown.
+              </li>
+              <li>
+                A notification only comes back to New when it brings something new, like another
+                message in an existing chat. Silent refreshes and progress updates don’t.
+              </li>
+            </ul>
+          </div>
+
+          <figure class="demo" aria-labelledby="demo-caption">
+            <div class="demo__device">
+              <div class="demo__screen" id="demo-screen">
+                <p class="demo__title" aria-hidden="true">Notifications</p>
+                <div id="demo-list"><!-- rendered by src/demo.js; static fallback below --></div>
+                <noscript>
+                  <p class="demo__noscript">The interactive illustration needs JavaScript.</p>
+                </noscript>
+              </div>
+            </div>
+            <div class="demo__controls" role="group" aria-label="Try the illustration">
+              <button type="button" class="button button--small" data-demo="check">Open &amp; close the panel</button>
+              <button type="button" class="button button--small" data-demo="arrive">A new message arrives</button>
+              <button type="button" class="button button--small button--quiet" data-demo="reset">Reset</button>
+            </div>
+            <p class="visually-hidden" id="demo-status" aria-live="polite"></p>
+            <figcaption id="demo-caption" class="note">
+              Illustration with made-up notifications, simplified from the app’s real behaviour. Not
+              a screenshot.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- Access & interaction -->
+      <section class="section" id="access" aria-labelledby="access-title">
+        <div class="wrap">
+          <header class="section__head">
+            <p class="label">Getting there</p>
+            <h2 id="access-title">One gesture away, wherever you are.</h2>
+          </header>
+          <ul class="ways">
+            <li>
+              <svg class="ways__icon" aria-hidden="true" viewBox="0 0 48 48"><rect x="12" y="4" width="24" height="40" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="33" y="14" width="3" height="10" rx="1.5" fill="var(--accent)"/></svg>
+              <h3>Edge handle</h3>
+              <p>
+                A slim pill on the edge of the screen. Tap it, or swipe it down or inward, to open the
+                panel. It takes on your accent colour while something is new. Choose the side and
+                position, or hide it in landscape.
+              </p>
+            </li>
+            <li>
+              <svg class="ways__icon" aria-hidden="true" viewBox="0 0 48 48"><rect x="6" y="10" width="16" height="12" rx="6" fill="none" stroke="currentColor" stroke-width="2"/><rect x="26" y="10" width="16" height="12" rx="6" fill="var(--accent)" fill-opacity=".9"/><rect x="6" y="26" width="16" height="12" rx="6" fill="none" stroke="currentColor" stroke-width="2"/><rect x="26" y="26" width="16" height="12" rx="6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+              <h3>Quick Settings tile</h3>
+              <p>
+                Add the <em>Notifications</em> tile to Quick Settings. It shows how many notifications
+                are new and opens the panel in one tap.
+              </p>
+            </li>
+            <li>
+              <svg class="ways__icon" aria-hidden="true" viewBox="0 0 48 48"><rect x="12" y="4" width="24" height="40" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M18 14h12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><rect x="16" y="21" width="16" height="5" rx="2" fill="var(--accent)"/><rect x="16" y="29" width="16" height="5" rx="2" fill="currentColor" fill-opacity=".35"/></svg>
+              <h3>Lock-screen view <span class="optional">optional</span></h3>
+              <p>
+                Shown over the locked keyguard when the screen turns on: <em>Off</em>, <em>When
+                something is new</em> (the default), or <em>Whenever there are notifications</em>.
+              </p>
+            </li>
+          </ul>
+
+          <div class="real">
+            <h3>Real notifications, not copies.</h3>
+            <p>Chronotif works with the actual notifications, so taps, actions and replies go straight to the app that posted them.</p>
+            <dl class="gestures">
+              <div><dt>Open</dt><dd>Tap a notification.</dd></div>
+              <div><dt>Dismiss</dt><dd>Swipe sideways. Swiping a collapsed stack dismisses the whole stack.</dd></div>
+              <div><dt>Expand</dt><dd>Chevron or long-press, for full text, conversation history, pictures, progress and the app’s actions.</dd></div>
+              <div><dt>Reply</dt><dd>Expand, tap the reply action, type and send without leaving the panel.</dd></div>
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      <!-- Privacy -->
+      <section class="section section--privacy" id="privacy" aria-labelledby="privacy-title">
+        <div class="wrap privacy">
+          <header class="section__head">
+            <p class="label">Privacy</p>
+            <h2 id="privacy-title">Your notifications never leave your phone.</h2>
+            <p class="lede">
+              Chronotif reads some of the most private things on your device, so it’s built to keep
+              them there. You don’t have to take our word for it: the source is on GitHub.
+            </p>
+          </header>
+          <ul class="pillars">
+            <li>
+              <h3>Notifications never leave</h3>
+              <p>
+                No accounts, analytics, crash reporters or backend. Your notifications, settings and
+                identifiers are never sent anywhere.
+              </p>
+            </li>
+            <li>
+              <h3>Almost nothing stored</h3>
+              <p>
+                Notifications are mirrored in memory only. The time of your last check and your
+                settings are the only things saved, in app-private storage excluded from backups.
+              </p>
+            </li>
+            <li>
+              <h3>Lock-screen rules respected</h3>
+              <p>
+                Follows Android’s lock-screen settings. Secret notifications aren’t shown, private ones
+                are redacted when your settings say so, and opening, actions and replies always go
+                through the system unlock first.
+              </p>
+            </li>
+            <li>
+              <h3>Light by design</h3>
+              <p>
+                No foreground service, wakelocks, alarms or polling. It responds to system events, and
+                has zero third-party dependencies.
+              </p>
+            </li>
+            <li>
+              <h3>Updates are opt-in</h3>
+              <p>
+                The only network code is an optional update check, off by default. Once a day, or when
+                you tap <em>Check for updates</em>, it reads the public release list on GitHub and
+                downloads the new APK. The request includes only the app’s version, though like any
+                download, GitHub sees your IP address.
+              </p>
+            </li>
+          </ul>
+          <p class="note">
+            This website has no cookies, analytics or third-party requests either.
+          </p>
+        </div>
+      </section>
+
+      <!-- Install -->
+      <section class="section" id="install" aria-labelledby="install-title">
+        <div class="wrap install">
+          <header class="section__head">
+            <p class="label">Install</p>
+            <h2 id="install-title">A few minutes of setup. Then you never need to open the app again.</h2>
+          </header>
+
+          <ol class="steps">
+            <li>
+              <h3>Download the APK</h3>
+              <p>
+                Get <a href="%CHRONOTIF_APK_URL%"><code>%CHRONOTIF_APK_NAME%</code></a> from its
+                <a href="%CHRONOTIF_RELEASE_URL%">GitHub release</a> (a
+                <code>.sha256</code> file is alongside if you want to verify it) and open it. If asked,
+                allow your browser or file manager to install unknown apps.
+              </p>
+            </li>
+            <li>
+              <h3>Grant notification access</h3>
+              <p>
+                Lets Chronotif read, open, dismiss and act on your notifications. On Android 13 and
+                newer, the first try is blocked for apps installed outside the Play Store: you’ll see
+                <q>App was denied access</q> or a greyed-out toggle. That’s expected.
+              </p>
+              <ol class="substeps">
+                <li>Press <em>Close</em>, then open <em>Settings → Apps → Chronotif</em>.</li>
+                <li>Tap <em>⋮</em> (top right) → <em>Allow restricted settings</em>, and confirm.</li>
+                <li>Return to Chronotif and tap <em>Grant</em> again. The toggle now works.</li>
+              </ol>
+            </li>
+            <li>
+              <h3>Allow display over other apps</h3>
+              <p>Needed for the edge handle and the lock-screen view.</p>
+            </li>
+            <li>
+              <h3>Add the tile <span class="optional">optional</span></h3>
+              <p>
+                Add the <em>Notifications</em> tile to Quick Settings. On Android 13 and newer, setup
+                has a button that does it for you.
+              </p>
+            </li>
+            <li>
+              <h3>Turn on updates <span class="optional">optional</span></h3>
+              <p>
+                In <em>Updates</em>, switch on <em>Update automatically</em>. If you also allow
+                <em>Install unknown apps</em> for Chronotif (Android 12+), updates install without
+                asking; otherwise a notification asks you to confirm each one.
+              </p>
+            </li>
+          </ol>
+
+          <div class="asides">
+            <aside class="aside" aria-labelledby="aside-playprotect">
+              <h3 id="aside-playprotect">“App not installed”?</h3>
+              <p>
+                That’s Google Play Protect rejecting an unknown new app, not a broken APK. In
+                <em>Play Store → profile → Play Protect → settings</em> (gear icon), turn on <em>Improve harmful app
+                detection</em> and try again, or temporarily turn off scanning. Installing with
+                <code>adb install</code> also works.
+              </p>
+            </aside>
+            <aside class="aside" aria-labelledby="aside-xiaomi">
+              <h3 id="aside-xiaomi">Xiaomi, HyperOS &amp; MIUI</h3>
+              <p>
+                Xiaomi adds its own permissions, and setup links straight to them. Turn on <em>Show on
+                Lock screen</em> and <em>Display pop-up windows while running in the background</em>,
+                enable <em>Autostart</em>, and set <em>Battery saver</em> to <em>No restrictions</em>.
+              </p>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section" id="faq" aria-labelledby="faq-title">
+        <div class="wrap faq">
+          <header class="section__head">
+            <p class="label">FAQ</p>
+            <h2 id="faq-title">Questions, answered.</h2>
+          </header>
+          <div class="faq__list">
+            <details>
+              <summary>Which phones and Android versions does it work on?</summary>
+              <p>
+                Android 11 or newer. The setup notes and screenshots come from Xiaomi phones (Poco X3
+                NFC and Xiaomi 17T Pro), and setup includes shortcuts for Xiaomi’s extra permissions.
+                Other devices are less tested so far. If something doesn’t work on yours,
+                <a href="https://github.com/nagarete/chronotif/issues">open an issue</a> with your
+                device and Android version.
+              </p>
+            </details>
+            <details>
+              <summary>Is it on Google Play?</summary>
+              <p>
+                Not currently. Chronotif is distributed as an APK on
+                <a href="https://github.com/nagarete/chronotif/releases">GitHub Releases</a>, or you
+                can build it from source.
+              </p>
+            </details>
+            <details>
+              <summary>How do updates work?</summary>
+              <p>
+                Turn on <em>Update automatically</em> and Chronotif checks GitHub Releases once a day.
+                When there’s a newer version, it downloads the APK, verifies it against the release’s
+                <code>.sha256</code> file and installs it. <em>Check for updates</em> does the same on
+                demand, and you can always install a newer APK from Releases by hand. Android only
+                accepts an update signed with the same key as the installed app.
+              </p>
+              <p>
+                Coming from v0.1.0? It has no updater and used a temporary signing key, so uninstall
+                it once and install the new version.
+              </p>
+            </details>
+            <details>
+              <summary>Does it replace the system notification shade?</summary>
+              <p>
+                No. Android doesn’t let a third-party app replace the system shade, so Chronotif works
+                alongside it. Swiping down from the top still opens the system shade, and heads-up
+                banners are still the system’s. Open Chronotif with the edge handle or the Quick
+                Settings tile instead.
+              </p>
+            </details>
+            <details>
+              <summary>How does it work with the lock screen?</summary>
+              <p>
+                The lock-screen view is shown on top of the system lock screen, which stays locked
+                underneath. You may briefly see the system lock screen as the screen turns on. Swipe up
+                or use your fingerprint or face to unlock; press back to reveal the system lock screen.
+                It follows Android’s lock-screen privacy settings, never covers a ringing call or an
+                alarm, and doesn’t appear at all if Android’s <em>show notifications on lock
+                screen</em> is off. You can also turn it off in Chronotif.
+              </p>
+            </details>
+            <details>
+              <summary>Why does Android say “App was denied access”?</summary>
+              <p>
+                From Android 13, notification access is a restricted setting for apps installed
+                outside the Play Store. Allow it once from <em>App info → ⋮ → Allow restricted
+                settings</em>; the menu item only appears after you’ve tried to enable the permission.
+                See <a href="#install">Install</a> for the steps.
+              </p>
+            </details>
+            <details>
+              <summary>Why is there a “Chronotif is displaying over other apps” notification?</summary>
+              <p>
+                Stock Android posts it for any app that draws over other apps, which the edge handle
+                does. Long-press the notification to turn it off.
+              </p>
+            </details>
+            <details>
+              <summary>Does every notification look exactly like it does in the system shade?</summary>
+              <p>
+                Mostly. Big text, inbox lines, conversations, pictures, progress and actions are
+                supported. Notifications with fully custom layouts are rendered from their text, not
+                pixel-for-pixel.
+              </p>
+            </details>
+            <details>
+              <summary>An app complains about an overlay. What can I do?</summary>
+              <p>
+                A few apps, mostly banking apps, refuse input while any overlay is on screen. Turn off
+                the edge handle in Chronotif and use the Quick Settings tile instead.
+              </p>
+            </details>
+            <details>
+              <summary>Is it really free?</summary>
+              <p>
+                Yes. Chronotif is free software under the GNU General Public License v3.0 or later.
+                You can use, study, modify and share it.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="closing wrap" aria-labelledby="closing-title">
+        <h2 id="closing-title">Catch up once. <em>Then let it rest.</em></h2>
+        <div class="cta">
+          <a class="button button--primary" href="%CHRONOTIF_APK_URL%">Download for Android <span class="button__meta">%CHRONOTIF_TAG%</span></a>
+          <a class="button" href="https://github.com/nagarete/chronotif">View on GitHub</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer__inner">
+        <div class="footer__brand">
+          <a class="brand" href="/">
+            <img src="/favicon.svg" alt="" width="24" height="24" />
+            <span>Chronotif</span>
+          </a>
+          <p>
+            Free software under the
+            <a href="https://github.com/nagarete/chronotif/blob/main/LICENSE">GPL-3.0-or-later</a>.
+            Made by <a href="https://github.com/nagarete">nagarete</a>.
+          </p>
+        </div>
+        <nav aria-label="Project">
+          <ul class="footer__links">
+            <li><a href="https://github.com/nagarete/chronotif">Source code</a></li>
+            <li><a href="https://github.com/nagarete/chronotif/releases">Releases</a></li>
+            <li><a href="https://github.com/nagarete/chronotif/issues">Issues</a></li>
+            <li><a href="https://github.com/nagarete/chronotif/blob/main/CONTRIBUTING.md">Contributing</a></li>
+            <li><a href="https://github.com/nagarete/chronotif/blob/main/SECURITY.md">Security</a></li>
+          </ul>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>
