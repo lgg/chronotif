@@ -61,12 +61,12 @@ object Updater {
         val js = context.getSystemService(JobScheduler::class.java)
         if (!Prefs.autoUpdate) return js.cancel(JOB_ID)
         if (js.getPendingJob(JOB_ID) != null) return
-        js.schedule(
-            JobInfo.Builder(JOB_ID, ComponentName(context, UpdateJob::class.java))
-                .setPeriodic(TimeUnit.DAYS.toMillis(1))
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                .build(),
-        )
+        // Runs from App.onCreate: a scheduling failure must never stop the app from starting.
+        val job = JobInfo.Builder(JOB_ID, ComponentName(context, UpdateJob::class.java))
+            .setPeriodic(TimeUnit.DAYS.toMillis(1))
+            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+            .build()
+        runCatching { js.schedule(job) }
     }
 
     // --- Check / download / install ---

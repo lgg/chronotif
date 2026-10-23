@@ -5,6 +5,8 @@
     <!-- Only for the opt-in updater (Updater.kt), which reads GitHub Releases. Off by default;
          no notification data, settings or identifiers are ever sent. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android 16 requires it for the update job's network constraint. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- "Update ready" / "Updated" notifications. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
