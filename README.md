@@ -9,14 +9,14 @@ An iPhone-inspired notification experience for Android: chronological, calm, and
 - **Ongoing** (media, navigation, downloads) sits compactly below NEW and is never "new".
 
 <p align="center">
-  <img src="website/public/screens/panel-480.webp" width="240" alt="The panel: two notifications under NEW, from now and 13 minutes ago, then Ongoing items.">
+  <img src="website/public/screens/panel-earlier-480.webp" width="240" alt="The panel scrolled to Earlier: notifications from 19 minutes to 1 hour ago, newest first, across apps.">
   &nbsp;
   <img src="website/public/screens/lock-new-480.webp" width="240" alt="The lock-screen view: five NEW notifications, newest first, from 1 to 18 minutes ago, then Ongoing.">
   &nbsp;
-  <img src="website/public/screens/lock-earlier-480.webp" width="240" alt="The lock-screen view scrolled down: Ongoing items, then a single pill reading 30 earlier.">
+  <img src="website/public/screens/lock-earlier-480.webp" width="240" alt="The lock-screen view with EARLIER opened: notifications from 30 minutes to 1 hour ago, newest first.">
 </p>
-<p align="center"><sub>Panel, lock screen, and what you've already seen folded behind "30 earlier".
-Xiaomi 17T Pro; other people's names, messages and photos are blurred.
+<p align="center"><sub>The panel, the lock screen, and EARLIER opened on the lock screen. Every list is
+newest first, across apps. Xiaomi 17T Pro; other people's names, messages and photos are blurred.
 More at <a href="https://chronotif.com">chronotif.com</a>.</sub></p>
 
 The same model runs on the lock screen: fresh notifications up front, earlier ones folded behind
