@@ -16,7 +16,7 @@ android {
         targetSdk = 36
         // Only bump versionName; versionCode follows it (0.1.0 -> 100, 1.2.3 -> 10203) so every
         // release can install over the last one. Tag releases as v<versionName>.
-        versionName = "0.2.0"
+        versionName = "0.2.1"
         versionCode = versionName!!.split('.').map(String::toInt).fold(0) { acc, p -> acc * 100 + p }
     }
 
