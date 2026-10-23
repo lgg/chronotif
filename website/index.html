@@ -123,7 +123,7 @@
               srcset="/screens/lock-new-480.webp 480w, /screens/lock-new-800.webp 800w"
               sizes="(min-width: 960px) 240px, 42vw"
               width="480" height="1040"
-              alt="Chronotif on the lock screen: five new notifications under New, and ongoing items below."
+              alt="Chronotif on the lock screen: five new notifications under New, newest first, from 1 minute to 18 minutes ago, and ongoing items below."
             />
           </figure>
           <figure class="phone phone--front">
@@ -133,7 +133,7 @@
               sizes="(min-width: 960px) 300px, 54vw"
               width="480" height="1040"
               fetchpriority="high"
-              alt="Chronotif's notification panel: two notifications under New 2, then a compact Ongoing section."
+              alt="Chronotif's notification panel: two notifications under New 2, from now and 13 minutes ago, then a compact Ongoing section."
             />
           </figure>
         </div>
@@ -155,7 +155,7 @@
                     srcset="/screens/panel-480.webp 480w, /screens/panel-800.webp 800w"
                     sizes="(min-width: 960px) 300px, (min-width: 640px) 30vw, 72vw"
                     width="480" height="1040" loading="lazy"
-                    alt="The panel: New 2 at the top, then Ongoing items such as a step counter and a connected watch."
+                    alt="The panel: New 2 at the top, from now and 13 minutes ago, then Ongoing items such as a step counter and a connected watch."
                   />
                 </div>
                 <figcaption>
@@ -172,12 +172,12 @@
                     srcset="/screens/lock-new-480.webp 480w, /screens/lock-new-800.webp 800w"
                     sizes="(min-width: 960px) 300px, (min-width: 640px) 30vw, 72vw"
                     width="480" height="1040" loading="lazy"
-                    alt="The lock-screen view: the clock, then New 5 with five notifications, then Ongoing."
+                    alt="The lock-screen view: the clock, then New 5 with five notifications in arrival order, 1, 3 and 18 minutes old, then Ongoing."
                   />
                 </div>
                 <figcaption>
                   <strong>The lock screen.</strong> When the screen turns on, what’s new is up
-                  front, shown over the still-locked keyguard.
+                  front, newest first, shown over the still-locked keyguard.
                 </figcaption>
               </figure>
             </li>
@@ -412,9 +412,31 @@
               </p>
               <ol class="substeps">
                 <li>Press <em>Close</em>, then open <em>Settings → Apps → Chronotif</em>.</li>
-                <li>Tap <em>⋮</em> (top right) → <em>Allow restricted settings</em>, and confirm.</li>
+                <li>
+                  Tap <em>⋮</em> (top right) → <em>Allow restricted settings</em>, and confirm. On
+                  HyperOS it’s a switch instead: <em>Advanced settings → Allow restricted
+                  settings</em>, further down the same page.
+                </li>
                 <li>Return to Chronotif and tap <em>Grant</em> again. The toggle now works.</li>
               </ol>
+              <div class="shots">
+                <figure>
+                  <img
+                    src="/screens/install-denied.webp"
+                    width="640" height="625" loading="lazy"
+                    alt="Android's dialog: App was denied access. Access to this permission can put your personal and financial info at risk. A Close button."
+                  />
+                  <figcaption>The first try. Expected; press <em>Close</em>.</figcaption>
+                </figure>
+                <figure>
+                  <img
+                    src="/screens/install-restricted.webp"
+                    width="640" height="480" loading="lazy"
+                    alt="App info for Chronotif on HyperOS, with the Allow restricted settings switch under Advanced settings highlighted."
+                  />
+                  <figcaption>On HyperOS, the switch in <em>App info</em>.</figcaption>
+                </figure>
+              </div>
             </li>
             <li>
               <h3>Allow display over other apps</h3>
@@ -524,7 +546,9 @@
               <p>
                 From Android 13, notification access is a restricted setting for apps installed
                 outside the Play Store. Allow it once from <em>App info → ⋮ → Allow restricted
-                settings</em>; the menu item only appears after you’ve tried to enable the permission.
+                settings</em> (on HyperOS, the <em>Allow restricted settings</em> switch under
+                <em>Advanced settings</em> in App info). It only appears after you’ve tried to enable
+                the permission.
                 See <a href="#install">Install</a> for the steps.
               </p>
             </details>
@@ -553,8 +577,9 @@
             <details>
               <summary>Is it really free?</summary>
               <p>
-                Yes. Chronotif is free software under the GNU General Public License v3.0 or later.
-                You can use, study, modify and share it.
+                Yes. No ads, no in-app purchases and no paid features. Chronotif is free software
+                under the GNU General Public License v3.0 or later: you can use, study, modify and
+                share it. If donations open later, they’ll be optional and won’t unlock anything.
               </p>
             </details>
           </div>

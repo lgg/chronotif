@@ -39,7 +39,7 @@
     <string name="perm_xiaomi_desc">Enable “Show on Lock screen” and “Display pop-up windows while running in the background”.</string>
     <string name="perm_autostart">Xiaomi autostart</string>
     <string name="perm_autostart_desc">Keeps notification access alive after reboots.</string>
-    <string name="perm_restricted_hint">Greyed-out toggle? Android blocks this for sideloaded apps: open App info → ⋮ → “Allow restricted settings”, then try again.</string>
+    <string name="perm_restricted_hint">Greyed-out toggle? Android blocks this for sideloaded apps: open App info → ⋮ → “Allow restricted settings” (on HyperOS, the switch under Advanced settings), then try again.</string>
     <string name="granted">Granted</string>
     <string name="grant">Grant</string>
     <string name="open">Open</string>

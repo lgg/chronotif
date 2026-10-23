@@ -1004,7 +1004,35 @@ q {
   background: var(--bg-raise);
   font-size: 0.9375rem;
 }
+.shots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+  margin-top: 1rem;
+}
+.shots figure {
+  margin: 0;
+}
+.shots img {
+  width: 100%;
+  height: auto;
+  border-radius: 0.85rem;
+  box-shadow: inset 0 0 0 1px var(--line);
+  background: #000;
+}
+.shots figcaption {
+  margin-top: 0.5rem;
+  color: var(--text-3);
+  font-size: 0.8125rem;
+}
+@media (max-width: 35.99rem) {
+  .shots {
+    grid-template-columns: 1fr;
+  }
+}
 .steps em,
+.shots em,
 .asides em,
 .faq em {
   color: var(--text);
