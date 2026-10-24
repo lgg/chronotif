@@ -8,6 +8,17 @@ An iPhone-inspired notification experience for Android: chronological, calm, and
   folded into per-app stacks.
 - **Ongoing** (media, navigation, downloads) sits compactly below NEW and is never "new".
 
+<p align="center">
+  <img src="website/public/screens/panel-earlier-480.webp" width="240" alt="The panel scrolled to Earlier: notifications from 19 minutes to 1 hour ago, newest first, across apps.">
+  &nbsp;
+  <img src="website/public/screens/lock-new-480.webp" width="240" alt="The lock-screen view: five NEW notifications, newest first, from 1 to 18 minutes ago, then Ongoing.">
+  &nbsp;
+  <img src="website/public/screens/lock-earlier-480.webp" width="240" alt="The lock-screen view with EARLIER opened: notifications from 30 minutes to 1 hour ago, newest first.">
+</p>
+<p align="center"><sub>The panel, the lock screen, and EARLIER opened on the lock screen. Every list is
+newest first, across apps. Xiaomi 17T Pro; other people's names, messages and photos are blurred.
+More at <a href="https://chronotif.com">chronotif.com</a>.</sub></p>
+
 The same model runs on the lock screen: fresh notifications up front, earlier ones folded behind
 an "N earlier" pill, with privacy rules applied.
 
@@ -70,12 +81,16 @@ storage and excluded from backups.
      expected. Press **Close**, then allow it once:
      1. Open **Settings → Apps → Chronotif** (or long-press the app icon → *App info*).
      2. Tap **⋮** (top right) → **Allow restricted settings**, and confirm with your PIN or
-        fingerprint if asked.
+        fingerprint if asked. On **HyperOS** it's a switch instead: scroll down App info to
+        **Advanced settings → Allow restricted settings**.
      3. Go back to Chronotif and tap **Grant** on *Notification access* again; this time the
         toggle works.
 
-     The **⋮** menu only offers *Allow restricted settings* after you have tried to enable the
-     permission once. If you don't see it, try the toggle first, then come back.
+     *Allow restricted settings* only appears after you have tried to enable the permission
+     once. If you don't see it, try the toggle first, then come back.
+
+     <img src="website/public/screens/install-denied.webp" width="300" alt="Android's 'App was denied access' dialog, with a Close button.">
+     <img src="website/public/screens/install-restricted.webp" width="300" alt="App info on HyperOS, with the Allow restricted settings switch under Advanced settings highlighted.">
    - **Display over other apps**: for the edge handle and the lock-screen view.
 3. Optional: add the **Chronotif** Quick Settings tile (button in setup on Android 13+).
 
