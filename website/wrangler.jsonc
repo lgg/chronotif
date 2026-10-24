@@ -1,0 +1,20 @@
+// Cloudflare Workers config for chronotif.com. `npm run deploy` builds and uploads dist/.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "chronotif-website",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    // Run the worker on every request so www.chronotif.com redirects before assets are served.
+    "run_worker_first": true
+  },
+  "routes": [
+    { "pattern": "chronotif.com", "custom_domain": true },
+    { "pattern": "www.chronotif.com", "custom_domain": true }
+  ],
+  "workers_dev": false,
+  "observability": { "enabled": false }
+}
