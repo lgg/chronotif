@@ -77,7 +77,7 @@ storage and excluded from backups.
      The **⋮** menu only offers *Allow restricted settings* after you have tried to enable the
      permission once. If you don't see it, try the toggle first, then come back.
    - **Display over other apps**: for the edge handle and the lock-screen view.
-3. Optional: add the **Notifications** Quick Settings tile (button in setup on Android 13+).
+3. Optional: add the **Chronotif** Quick Settings tile (button in setup on Android 13+).
 
 After that you never need to open the app again. Use the edge handle or the tile.
 
@@ -137,8 +137,9 @@ Optionally, lock Chronotif in Recents so the system doesn't kill it.
 - **Expand**: chevron or long-press. Expanded cards show full text, conversation history,
   pictures and actions.
 - **Reply**: expand, tap the reply action, type, send.
-- **Lock screen**: swipe up (or use fingerprint/face) to unlock; back reveals the system lock
-  screen. *Settings → Lock screen* chooses Off / *When something is new* (default) /
+- **Lock screen**: tap outside a card or swipe up (or use fingerprint/face) to unlock; back
+  reveals the system lock screen. Left untouched for 10 s, it steps aside so the screen turns off
+  as quickly as the stock lock screen. *Settings → Lock screen* chooses Off / *When something is new* (default) /
   *Whenever there are notifications*.
 
 ## Limitations

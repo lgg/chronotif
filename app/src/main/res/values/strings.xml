@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Chronotif</string>
-    <string name="tile_label">Notifications</string>
+    <string name="tile_label">Chronotif</string>
     <string name="tile_new">%d new</string>
     <string name="tile_nothing_new">Nothing new</string>
 
@@ -18,7 +18,7 @@
     <string name="no_access_body">Open Chronotif to finish setup.</string>
     <string name="open_setup">Open setup</string>
     <string name="hidden_content">Notification</string>
-    <string name="swipe_to_unlock">Swipe up to unlock</string>
+    <string name="tap_to_unlock">Tap to unlock</string>
     <string name="reply_hint">Reply</string>
     <string name="send">Send</string>
     <string name="expand">Expand</string>
@@ -52,7 +52,7 @@
     <string name="side_right">Right</string>
     <string name="handle_position">Position</string>
     <string name="handle_landscape">Hide in landscape</string>
-    <string name="tile_hint">You can also add the “Notifications” tile to Quick Settings.</string>
+    <string name="tile_hint">You can also add the “Chronotif” tile to Quick Settings.</string>
     <string name="open_panel">Open panel now</string>
 
     <string name="setup_lock">Lock screen</string>
