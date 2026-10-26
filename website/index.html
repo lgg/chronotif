@@ -402,6 +402,68 @@
                 <code>.sha256</code> file is alongside if you want to verify it) and open it. If asked,
                 allow your browser or file manager to install unknown apps.
               </p>
+              <p>
+                Chronotif isn’t on the Play Store, so Google Play Protect may step in. That’s a
+                check for apps it hasn’t seen before, not a sign the APK is broken. What you’ll see
+                varies by phone:
+              </p>
+              <ol class="substeps">
+                <li>
+                  <q>Send app for a security check?</q> or <q>App scan recommended</q>: tap
+                  <em>Scan app</em> (or <em>Send</em>) and the install continues once it’s checked.
+                </li>
+                <li>
+                  <q>Blocked by Play Protect</q> or <q>Unsafe app blocked</q>: tap <em>More
+                  details</em> → <em>Install anyway</em>.
+                </li>
+                <li>
+                  Just <q>App not installed</q>: pause Play Protect’s scanning for a day, then open
+                  the APK again. Installing over USB with <code>adb install</code> also works.
+                </li>
+              </ol>
+              <ol class="substeps">
+                <li>Open the Play Store, tap your profile icon, then <em>Play Protect</em>.</li>
+                <li>Tap <em>⚙</em> (top right).</li>
+                <li>Switch off <em>Scan apps with Play Protect</em>.</li>
+                <li>
+                  Choose <em>Pause</em>, not <em>Turn off</em>. Scanning turns itself back on the next
+                  day, so you don’t have to remember to.
+                </li>
+              </ol>
+              <div class="shots">
+                <figure>
+                  <img
+                    src="/screens/install-playprotect-menu.webp"
+                    width="640" height="830" loading="lazy"
+                    alt="The Play Store profile menu, with Play Protect highlighted."
+                  />
+                  <figcaption>Profile icon → <em>Play Protect</em>.</figcaption>
+                </figure>
+                <figure>
+                  <img
+                    src="/screens/install-playprotect-home.webp"
+                    width="640" height="590" loading="lazy"
+                    alt="The Play Protect screen, with the settings gear at the top right highlighted."
+                  />
+                  <figcaption>Tap <em>⚙</em>.</figcaption>
+                </figure>
+                <figure>
+                  <img
+                    src="/screens/install-playprotect-settings.webp"
+                    width="640" height="360" loading="lazy"
+                    alt="Play Protect settings, with the Scan apps with Play Protect switch highlighted."
+                  />
+                  <figcaption>Switch off <em>Scan apps with Play Protect</em>.</figcaption>
+                </figure>
+                <figure>
+                  <img
+                    src="/screens/install-playprotect-pause.webp"
+                    width="640" height="875" loading="lazy"
+                    alt="Google Play Protect dialog: Pause app scanning instead? The Pause button is highlighted, above Turn off and Cancel."
+                  />
+                  <figcaption>Choose <em>Pause</em>. It turns back on the next day.</figcaption>
+                </figure>
+              </div>
             </li>
             <li>
               <h3>Grant notification access</h3>
@@ -460,15 +522,6 @@
           </ol>
 
           <div class="asides">
-            <aside class="aside" aria-labelledby="aside-playprotect">
-              <h3 id="aside-playprotect">“App not installed”?</h3>
-              <p>
-                That’s Google Play Protect rejecting an unknown new app, not a broken APK. In
-                <em>Play Store → profile → Play Protect → settings</em> (gear icon), turn on <em>Improve harmful app
-                detection</em> and try again, or temporarily turn off scanning. Installing with
-                <code>adb install</code> also works.
-              </p>
-            </aside>
             <aside class="aside" aria-labelledby="aside-xiaomi">
               <h3 id="aside-xiaomi">Xiaomi, HyperOS &amp; MIUI</h3>
               <p>

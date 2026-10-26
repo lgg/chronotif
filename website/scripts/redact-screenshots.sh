@@ -50,17 +50,27 @@ for entry in "${shots[@]}"; do
   echo "wrote $out/$name-{480,800}.webp"
 done
 
-# Install-guide crops: system settings screens with nothing private on them, so they are only
-# cropped (crop geometry | optional accent ring as x1,y1,x2,y2 in the cropped image).
+# Install-guide crops: system settings screens, cropped (crop geometry | optional accent ring
+# as x1,y1,x2,y2 in the cropped image | optional regions to blur, same coordinates, for the
+# Google account card on Play Store screens).
 guide=screenshots-raw/install-guide
 crops=(
   "install-denied|Screenshot_2026-10-23-08-59-09-474_com.google.android.permissioncontroller.jpg|1280x1250+0+840|"
-  "install-restricted|Screenshot_2026-10-23-08-59-43-236_com.android.settings.jpg|1280x960+0+2130|30,720,1250,900"
+  "install-restricted|Screenshot_2026-10-23-08-59-43-236_com.android.settings.jpg|1280x960+0+2130|30,720,1250,900|"
+  "install-playprotect-menu|Screenshot_2026-10-23-09-03-52-920_com.android.vending.jpg|1280x1660+0+320|53,1404,1227,1587|55,10,1225,270"
+  "install-playprotect-home|Screenshot_2026-10-26-14-18-37-846_com.android.vending.jpg|1280x1180+0+150|1124,18,1276,170|"
+  "install-playprotect-settings|Screenshot_2026-10-23-09-04-00-748_com.android.vending.jpg|1280x720+0+140|42,407,1240,636|"
+  "install-playprotect-pause|Screenshot_2026-10-26-14-18-42-697_com.android.vending.jpg|1280x1750+0+575|112,1115,1168,1281|"
 )
 
 for entry in "${crops[@]}"; do
-  IFS='|' read -r name file geometry ring <<<"$entry"
+  IFS='|' read -r name file geometry ring blurs <<<"$entry"
   args=("$guide/$file" -crop "$geometry" +repage)
+  for r in $blurs; do
+    IFS=',' read -r x1 y1 x2 y2 <<<"$r"
+    w=$((x2 - x1)) h=$((y2 - y1))
+    args+=(\( +clone -crop "${w}x${h}+${x1}+${y1}" +repage -blur 0x22 \) -geometry "+${x1}+${y1}" -composite)
+  done
   if [[ -n $ring ]]; then
     IFS=',' read -r x1 y1 x2 y2 <<<"$ring"
     args+=(-fill none -stroke "#0a84ff" -strokewidth 8 -draw "roundrectangle $x1,$y1 $x2,$y2 56,56")
