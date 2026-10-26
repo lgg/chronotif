@@ -39,10 +39,10 @@ object LockPolicy {
         val mode = Prefs.lockMode
         val locked = context.getSystemService(KeyguardManager::class.java).isKeyguardLocked
         if (BuildConfig.DEBUG) {
-            android.util.Log.d("Chronotif", "lock? mode=$mode connected=${NotifStore.connected} locked=$locked " +
+            android.util.Log.d("Chronotif", "lock? enabled=${Prefs.enabled} mode=$mode connected=${NotifStore.connected} locked=$locked " +
                 "system=${systemShowsNotifications(context)} busy=${busy(context)} new=${NotifStore.newCount()}")
         }
-        if (mode == Prefs.LOCK_OFF || !NotifStore.connected) return false
+        if (!Prefs.enabled || mode == Prefs.LOCK_OFF || !NotifStore.connected) return false
         if (!locked) return false
         if (!systemShowsNotifications(context)) return false
         if (busy(context)) return false

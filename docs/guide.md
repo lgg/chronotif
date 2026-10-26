@@ -160,6 +160,9 @@ Optionally, lock Chronotif in Recents so the system doesn't kill it.
   display timeout, which can be longer than the stock lock-screen timeout.
   *Settings → Lock screen* chooses Off / *When something is new* (default) /
   *Whenever there are notifications*.
+- **Turn it off**: switch off *Settings → Chronotif is on* to hide the edge handle and
+  lock-screen view without uninstalling. Your handle and lock-screen settings are kept for when
+  you turn it back on. The Quick Settings tile shows "Off" and still opens the panel.
 
 ## Limitations
 
