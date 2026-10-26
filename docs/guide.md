@@ -48,7 +48,8 @@ storage and excluded from backups.
 1. Download `chronotif-vX.Y.Z.apk` from
    [Releases](https://github.com/nagarete/chronotif/releases) (verify against the `.sha256` file if you like) and open it from
    your file manager or browser. Allow "install unknown apps" for that app if asked.
-   If it ends with just **"App not installed"**, see [Play Protect](#app-not-installed-google-play-protect) below.
+   Google Play Protect may stop the install because it hasn't seen the app before; see
+   [Google Play Protect](#google-play-protect) below.
 2. Open **Chronotif** and work through *Permissions*:
    - **Notification access.** Android 13+ blocks this for apps installed outside the Play
      Store, so the first attempt shows **"App was denied access: access to this permission
@@ -99,21 +100,35 @@ the same key as the installed app, so a tampered APK can't install.
 Updating from **v0.1.0** has to be done by hand once: uninstall it, then install the new
 version. v0.1.0 has no updater and was signed with a temporary key.
 
-### "App not installed" (Google Play Protect)
+### Google Play Protect
 
-Installing an unknown, newly released app from a file manager can fail with a bare
+Chronotif isn't on the Play Store, so **Google Play Protect** checks it the first time you
+install it (and sometimes after an update). This is about the app being unknown to Google, not
+about a problem with the APK. What you see depends on the phone and Play Protect version:
+
+- **"Send app for a security check?"** or **"App scan recommended"**: tap **Scan app** (or
+  **Send**). The install continues once the scan finishes.
+- **"Blocked by Play Protect"** or **"Unsafe app blocked"**: tap **More details → Install
+  anyway**.
+- A bare **"App not installed"**: see below.
+
+#### "App not installed"
+
+Installing an unknown, newly released app from a file manager can also fail with a bare
 "App not installed" (in `adb logcat`: `INSTALL_FAILED_VERIFICATION_FAILURE: Install not
-allowed`). This comes from **Google Play Protect**, not from a problem with the APK. It asks to
-upload the unknown app for scanning, and rejects the install when upload consent is off.
+allowed`). That's Play Protect too. Pause its scanning for a day, then open the APK again:
 
-Any one of these fixes it:
+1. Open the **Play Store**, tap your profile icon, then **Play Protect**.
+2. Tap **⚙** (top right).
+3. Switch off **Scan apps with Play Protect**.
+4. Choose **Pause**, not *Turn off*. Scanning turns itself back on the next day.
 
-- Open **Play Store → profile icon → Play Protect → ⚙ settings** and turn on
-  **Improve harmful app detection** (lets it send unknown apps to Google for scanning), then
-  install again; or
-- Temporarily turn off **Scan apps with Play Protect** in the same screen, install, turn it
-  back on; or
-- Install over USB with `adb install chronotif-vX.Y.Z.apk`, which skips the on-device check.
+Or install over USB with `adb install chronotif-vX.Y.Z.apk`, which skips the on-device check.
+
+<img src="../website/public/screens/install-playprotect-menu.webp" width="300" alt="The Play Store profile menu, with Play Protect highlighted.">
+<img src="../website/public/screens/install-playprotect-home.webp" width="300" alt="The Play Protect screen, with the settings gear at the top right highlighted.">
+<img src="../website/public/screens/install-playprotect-settings.webp" width="300" alt="Play Protect settings, with the Scan apps with Play Protect switch highlighted.">
+<img src="../website/public/screens/install-playprotect-pause.webp" width="300" alt="Pause app scanning instead? dialog, with the Pause button highlighted.">
 
 ### Xiaomi / HyperOS / MIUI (Poco X3 NFC, Xiaomi 17T Pro)
 
