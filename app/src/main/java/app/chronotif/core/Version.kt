@@ -20,8 +20,21 @@ object Version {
             val y = b.getOrElse(i) { 0 }
             if (x != y) return x > y
         }
+        val nightly = Regex("-nightly\\.(\\d+)$")
+        val aNightly = nightly.find(candidate)?.groupValues?.get(1)?.toIntOrNull()
+        val bNightly = nightly.find(current)?.groupValues?.get(1)?.toIntOrNull()
+        if (aNightly != null && bNightly != null) return aNightly > bNightly
         // Same numbers: a release beats its own pre-release (1.0.0 > 1.0.0-rc1).
         return '-' !in candidate && '-' in current
+    }
+
+    /** Channel tags deliberately keep nightlies invisible to older stable updaters. */
+    fun releaseVersion(tag: String, nightly: Boolean): String? = if (nightly) {
+        Regex("nightly-(\\d+\\.\\d+\\.\\d+)-(\\d+)").matchEntire(tag)?.let {
+            "${it.groupValues[1]}-nightly.${it.groupValues[2]}"
+        }
+    } else {
+        Regex("v\\d+\\.\\d+\\.\\d+").matchEntire(tag)?.value?.removePrefix("v")
     }
 
     /** The hex digest from a `sha256sum` line (`<hash>  <file>`), or null if malformed. */

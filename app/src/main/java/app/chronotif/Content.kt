@@ -15,6 +15,7 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.os.Process
 import android.util.LruCache
+import app.chronotif.core.MessageStamp
 
 /** What a card displays, extracted from a notification's extras (no foreign RemoteViews). */
 class Content(
@@ -36,8 +37,6 @@ class Content(
         get() = !redacted && (bigText != null || lines.size > 1 || (text?.length ?: 0) > 80)
 
     companion object {
-        private const val MAX_LINES = 6
-
         fun of(context: Context, e: Entry, redact: Boolean): Content {
             val appName = Apps.label(context, e.pkg)
             if (redact) {
@@ -59,14 +58,16 @@ class Content(
             var lines: List<CharSequence> =
                 x.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.filterNotNull().orEmpty()
 
-            val messages = messages(x)
+            val messages = (messages(x, Notification.EXTRA_HISTORIC_MESSAGES) + messages(x))
+                .distinctBy { Triple(it.time, it.senderKey ?: it.sender?.toString(), it.body.toString()) }
+                .sortedBy { it.time }
             if (messages.isNotEmpty()) {
                 val conversation = x.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)
                 val group = conversation != null ||
                     x.getBoolean(Notification.EXTRA_IS_GROUP_CONVERSATION)
                 title = conversation ?: title
-                lines = messages.takeLast(MAX_LINES).map { (sender, body) ->
-                    if (group && sender != null) "$sender: $body" else body
+                lines = messages.map { message ->
+                    if (group && message.sender != null) "${message.sender}: ${message.body}" else message.body
                 }
                 text = lines.last()
             }
@@ -82,7 +83,7 @@ class Content(
                 title = title?.takeIf { it.isNotBlank() } ?: appName,
                 text = text?.takeIf { it.isNotBlank() },
                 bigText = big?.takeIf { it.isNotBlank() && it.toString() != text?.toString() },
-                lines = lines.takeLast(MAX_LINES),
+                lines = lines,
                 subText = x.getCharSequence(Notification.EXTRA_SUB_TEXT)
                     ?: x.getCharSequence(Notification.EXTRA_SUMMARY_TEXT),
                 progress = progress,
@@ -99,20 +100,45 @@ class Content(
                 x.getCharSequence(Notification.EXTRA_TITLE)?.toString(),
                 x.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
                 x.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString(),
-                x.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.size,
-                last?.second?.toString(),
+                x.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.map { it.toString() },
+                last?.body?.toString(),
+                last?.time,
             ).hashCode()
         }
 
+        fun isConversation(n: Notification): Boolean =
+            n.category == Notification.CATEGORY_MESSAGE || n.extras.containsKey(Notification.EXTRA_MESSAGES)
+
+        /** Only active incoming messages advance attention; historic and outgoing messages don't. */
         @Suppress("DEPRECATION")
-        private fun messages(x: Bundle): List<Pair<CharSequence?, CharSequence>> {
-            val arr: Array<Parcelable>? = x.getParcelableArray(Notification.EXTRA_MESSAGES)
+        fun incomingMessage(n: Notification): MessageStamp? {
+            val x = n.extras
+            if (x.containsKey(Notification.EXTRA_MESSAGES)) {
+                val user = x.getParcelable(Notification.EXTRA_MESSAGING_PERSON) as? Person
+                val last = messages(x).filter { message ->
+                    message.sender != null && !(user != null &&
+                        (if (user.key != null && message.senderKey != null) user.key == message.senderKey
+                        else user.name?.toString() == message.sender.toString()))
+                }.maxByOrNull { it.time } ?: return null
+                return MessageStamp(last.time, listOf(last.senderKey, last.sender?.toString(), last.body.toString()).hashCode())
+            }
+            if (!isConversation(n)) return null
+            // Some chat apps supply only plain text. With no message timestamp, compare content.
+            val body = x.getCharSequence(Notification.EXTRA_TEXT)?.takeIf { it.isNotBlank() } ?: return null
+            return MessageStamp(0, listOf(x.getCharSequence(Notification.EXTRA_TITLE)?.toString(), body.toString()).hashCode())
+        }
+
+        private class Message(val sender: CharSequence?, val senderKey: String?, val body: CharSequence, val time: Long)
+
+        @Suppress("DEPRECATION")
+        private fun messages(x: Bundle, key: String = Notification.EXTRA_MESSAGES): List<Message> {
+            val arr: Array<Parcelable>? = x.getParcelableArray(key)
             return arr.orEmpty().mapNotNull { p ->
                 val b = p as? Bundle ?: return@mapNotNull null
                 val body = b.getCharSequence("text") ?: return@mapNotNull null
-                val sender = b.getCharSequence("sender")
-                    ?: (b.getParcelable("sender_person") as? Person)?.name
-                sender to body
+                val person = b.getParcelable("sender_person") as? Person
+                val sender = b.getCharSequence("sender") ?: person?.name
+                Message(sender, person?.key, body, b.getLong("time"))
             }
         }
 

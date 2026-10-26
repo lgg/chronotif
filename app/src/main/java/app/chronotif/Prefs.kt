@@ -59,6 +59,11 @@ object Prefs {
         get() = sp.getBoolean("auto_update", false)
         set(v) = sp.edit().putBoolean("auto_update", v).apply()
 
+    /** Nightly APKs opt into nightly updates on first install; existing choices persist. */
+    var nightlyUpdates: Boolean
+        get() = sp.getBoolean("nightly_updates", BuildConfig.NIGHTLY)
+        set(v) = sp.edit().putBoolean("nightly_updates", v).apply()
+
     /** A version that failed to install; automatic checks skip it until a manual retry. */
     var updateFailedVersion: String?
         get() = sp.getString("update_failed_version", null)

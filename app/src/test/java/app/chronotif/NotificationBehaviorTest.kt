@@ -1,0 +1,189 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+package app.chronotif
+
+import android.app.Activity
+import android.app.Application
+import android.app.KeyguardManager
+import android.app.Notification
+import android.app.Person
+import android.content.Context
+import android.content.Intent
+import android.os.Looper
+import android.os.Process
+import android.service.notification.NotificationListenerService.RankingMap
+import android.service.notification.NotificationListenerService.Ranking
+import android.service.notification.StatusBarNotification
+import android.view.View
+import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.TextView
+import app.chronotif.ui.LockActivity
+import app.chronotif.ui.NotifList
+import org.junit.After
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.Robolectric
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
+import org.robolectric.util.ReflectionHelpers
+import java.time.Duration
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35], application = Application::class)
+class NotificationBehaviorTest {
+    private val context: Context get() = RuntimeEnvironment.getApplication()
+    private lateinit var ranking: RankingMap
+    private val sender = Person.Builder().setName("Sender").setKey("sender").build()
+    private val me = Person.Builder().setName("Me").setKey("me").build()
+
+    @Before
+    fun setup() {
+        context.getSharedPreferences("chronotif", Context.MODE_PRIVATE).edit().clear().commit()
+        Prefs.init(context)
+        LockSession.reset()
+        ranking = ReflectionHelpers.callConstructor(RankingMap::class.java,
+            ReflectionHelpers.ClassParameter.from(Array<Ranking>::class.java, emptyArray<Ranking>()))
+        NotifStore.connect(emptyArray(), ranking)
+    }
+
+    @After
+    fun cleanup() {
+        NotifStore.disconnect()
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    private fun notification(vararg texts: String): Notification =
+        Notification.Builder(context, "messages")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setCategory(Notification.CATEGORY_MESSAGE)
+            .setOnlyAlertOnce(true)
+            .setStyle(Notification.MessagingStyle(me).also { style ->
+                texts.forEachIndexed { i, text -> style.addMessage(text, 100L + i, sender) }
+            })
+            .build()
+
+    @Suppress("DEPRECATION")
+    private fun post(n: Notification, time: Long = 1000): Entry {
+        val sbn = StatusBarNotification("example.chat", "example.chat", 1, null, 1000, 0, 0,
+            n, Process.myUserHandle(), time)
+        NotifStore.post(sbn, ranking)
+        return NotifStore.get(sbn.key)!!
+    }
+
+    @Test
+    fun silentIncomingMessageReturnsToNewAndExpandsWithoutEarlier() {
+        post(notification("first"))
+        Prefs.markChecked(1000)
+        val updated = post(notification("first", "second"), 2000)
+        assertEquals("The new message must not remain trapped in Earlier", 1, NotifStore.newCount())
+
+        val controller = Robolectric.buildActivity(Activity::class.java).setup()
+        try {
+            val activity = controller.get()
+            val container = LinearLayout(activity)
+            val list = NotifList(object : NotifList.Host {
+                override val activity = activity
+                override fun launched() {}
+                override fun guarded(action: () -> Unit) = action()
+            }, container, onLock = true)
+            list.render()
+            assertFalse(texts(container).contains("first"))
+            list.onToggleExpand(updated)
+            assertTrue(texts(container).containsAll(listOf("first", "second")))
+        } finally {
+            controller.pause().stop().destroy()
+        }
+    }
+
+    @Test
+    fun expansionRetainsAllSuppliedMessages() {
+        val messages = (1..9).map { "message $it" }
+        val entry = post(notification(*messages.toTypedArray()))
+        assertEquals(messages, Content.of(context, entry, false).lines.map { it.toString() })
+    }
+
+    @Test
+    fun historicMessagesAreDisplayedWithoutBecomingNewArrivals() {
+        val style = Notification.MessagingStyle(me)
+            .addHistoricMessage(Notification.MessagingStyle.Message("old", 10, sender))
+            .addMessage("latest", 100, sender)
+        val n = Notification.Builder(context, "messages").setStyle(style).setOnlyAlertOnce(true).build()
+        val entry = post(n)
+        Prefs.markChecked(1000)
+        style.addHistoricMessage(Notification.MessagingStyle.Message("older", 5, sender))
+        val refreshed = post(Notification.Builder(context, "messages").setStyle(style).setOnlyAlertOnce(true).build(), 2000)
+        assertEquals(listOf("older", "old", "latest"), Content.of(context, refreshed, false).lines.map { it.toString() })
+        assertEquals(0, NotifStore.newCount())
+        assertEquals(entry.alertTime, refreshed.alertTime)
+    }
+
+    @Test
+    fun outgoingReplyAndRepostDoNotReturnAConversationToNew() {
+        post(notification("incoming"))
+        Prefs.markChecked(1000)
+        val reply = Notification.MessagingStyle(me)
+            .addMessage("incoming", 100, sender)
+            .addMessage("my reply", 200, null as Person?)
+        // Even an audible repost is not a new incoming message.
+        val n = Notification.Builder(context, "messages").setStyle(reply).build()
+        post(n, 2000)
+        assertEquals(0, NotifStore.newCount())
+        post(notification("incoming"), 3000)
+        assertEquals(0, NotifStore.newCount())
+    }
+
+    @Test
+    fun plainMessageUpdatesReturnToNewButTimestampRefreshesDoNot() {
+        fun plain(text: String, time: Long) = Notification.Builder(context, "messages")
+            .setCategory(Notification.CATEGORY_MESSAGE).setOnlyAlertOnce(true)
+            .setContentTitle("Sender").setContentText(text).setWhen(time).build()
+        post(plain("first", 1000))
+        Prefs.markChecked(1000)
+        post(plain("first", 2000), 2000)
+        assertEquals(0, NotifStore.newCount())
+        post(plain("second", 3000), 3000)
+        assertEquals(1, NotifStore.newCount())
+    }
+
+    @Test
+    fun quietProgressUpdateRemainsInEarlierAndRedactionHidesHistory() {
+        val n = Notification.Builder(context, "work").setContentText("Downloading")
+            .setOnlyAlertOnce(true).setProgress(100, 10, false).build()
+        post(n)
+        Prefs.markChecked(1000)
+        post(Notification.Builder(context, "work").setContentText("Almost done")
+            .setOnlyAlertOnce(true).setProgress(100, 90, false).build(), 2000)
+        assertEquals(0, NotifStore.newCount())
+        val private = post(notification("private one", "private two"), 3000)
+        val content = Content.of(context, private, true)
+        assertTrue(content.lines.isEmpty())
+        assertFalse(content.expandable)
+        assertFalse(content.text.toString().contains("private"))
+    }
+
+    @Test
+    fun lockViewStaysUntilScreenOffInsteadOfHandingOffAfterTenSeconds() {
+        shadowOf(context.getSystemService(KeyguardManager::class.java)).setKeyguardLocked(true)
+        val controller = Robolectric.buildActivity(LockActivity::class.java).setup()
+        try {
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(11))
+            assertFalse("Idle must not expose another stock lock-screen interval", controller.get().isFinishing)
+            context.sendBroadcast(Intent(Intent.ACTION_SCREEN_OFF))
+            shadowOf(Looper.getMainLooper()).idle()
+            assertTrue(controller.get().isFinishing)
+        } finally {
+            controller.pause().stop().destroy()
+        }
+    }
+
+    private fun texts(view: View): List<String> = when (view) {
+        is TextView -> listOf(view.text.toString())
+        is ViewGroup -> (0 until view.childCount).flatMap { texts(view.getChildAt(it)) }
+        else -> emptyList()
+    }
+}

@@ -57,12 +57,36 @@ class AttentionTest {
         assertEquals(100, c.onPosted("k", 100, signature = 1, quiet = false))
         // Same content re-posted (e.g. timestamp refresh): keeps original arrival.
         assertEquals(100, c.onPosted("k", 200, signature = 1, quiet = false))
-        // New content but app asked to alert only once: still not a new arrival.
+        // Non-conversation content marked quiet: still not a new arrival.
         assertEquals(100, c.onPosted("k", 300, signature = 2, quiet = true))
         // New content, not quiet: arrives again (a new message in an existing chat).
         assertEquals(400, c.onPosted("k", 400, signature = 3, quiet = false))
         c.onRemoved("k")
         assertEquals(500, c.onPosted("k", 500, signature = 3, quiet = true))
+    }
+
+    @Test
+    fun silentMessagesAdvanceAttentionEvenWhenTheBodyRepeats() {
+        val c = AlertClock()
+        fun post(time: Long, message: MessageStamp?) =
+            c.onPosted("chat", time, signature = 1, quiet = true, conversation = true, message = message)
+        assertEquals(100, post(100, MessageStamp(10, 1)))
+        assertEquals(100, post(200, MessageStamp(10, 1)))
+        assertEquals(300, post(300, MessageStamp(20, 1)))
+        // Trimming history or appending an outgoing reply must not move the arrival time.
+        assertEquals(300, post(400, MessageStamp(10, 1)))
+        assertEquals(300, post(500, null))
+        assertEquals(300, post(600, MessageStamp(20, 1)))
+    }
+
+    @Test
+    fun plainConversationTextChangesCountButRefreshesDoNot() {
+        val c = AlertClock()
+        fun post(time: Long, signature: Int) = c.onPosted("chat", time, signature,
+            quiet = true, conversation = true, message = MessageStamp(0, signature))
+        assertEquals(100, post(100, 1))
+        assertEquals(100, post(200, 1))
+        assertEquals(300, post(300, 2))
     }
 
     @Test

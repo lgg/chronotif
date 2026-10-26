@@ -9,7 +9,8 @@ stay accessible without competing for the same attention.
 
 **Android 11 or newer.** No accounts, ads, or analytics. Your notifications stay on your phone.
 
-[Download the APK](https://github.com/nagarete/chronotif/releases) ·
+[Download stable](https://github.com/nagarete/chronotif/releases/latest) ·
+[Nightly builds](https://github.com/nagarete/chronotif/releases?q=nightly&expanded=true) ·
 [Website & interactive demo](https://chronotif.com) ·
 [Setup help](docs/guide.md#install)
 
@@ -51,8 +52,9 @@ Earlier keeps notifications that are still active; it isn't an archive of dismis
 notifications.
 
 A check counts when you keep the panel open for at least 1.5 seconds or interact with
-it. On the lock screen, notifications move to Earlier after you unlock. A silent
-refresh or progress update doesn't make an old notification new again.
+it. On the lock screen, notifications move to Earlier after you unlock. A new incoming
+message makes its conversation new again, even if the app updates its notification silently.
+A timestamp refresh or progress update doesn't.
 
 Tap the edge handle or the Quick Settings tile to open the panel. Tap a notification
 to open its app, swipe sideways to dismiss it, or expand it for details and actions.
@@ -77,7 +79,10 @@ Return to Chronotif and grant access again. On HyperOS, the switch is under
 
 See the [installation guide](docs/guide.md#install) for screenshots, Xiaomi permissions,
 and help with installation problems. You can enable optional updates in Chronotif's
-settings or install newer APKs from Releases yourself.
+settings or install newer APKs from Releases yourself. Under **Updates**, choose **Stable**
+for published stable releases or **Nightly** for changes still being tested. Both use the same
+app and keep your settings. Switching back to Stable waits for a newer stable release.
+If your installed version has no channel setting, install a nightly APK once to opt in.
 
 ## Privacy and battery use
 

@@ -37,6 +37,27 @@ class VersionTest {
     }
 
     @Test
+    fun nightlyBuildsCompareNumericallyAndYieldToStable() {
+        assertTrue(Version.isNewer("0.2.3-nightly.10", "0.2.3-nightly.9"))
+        assertFalse(Version.isNewer("0.2.3-nightly.9", "0.2.3-nightly.10"))
+        assertFalse(Version.isNewer("0.2.3-nightly.10", "0.2.3-nightly.10"))
+        assertTrue(Version.isNewer("0.2.3", "0.2.3-nightly.10"))
+        assertFalse(Version.isNewer("0.2.3-nightly.10", "0.2.3"))
+        assertTrue(Version.isNewer("0.2.4-nightly.11", "0.2.3"))
+    }
+
+    @Test
+    fun channelTagsDoNotCrossChannelsOrReachLegacyUpdaters() {
+        assertEquals("0.2.3", Version.releaseVersion("v0.2.3", nightly = false))
+        assertNull(Version.releaseVersion("v0.2.3", nightly = true))
+        assertEquals("0.2.3-nightly.10", Version.releaseVersion("nightly-0.2.3-10", nightly = true))
+        assertNull(Version.releaseVersion("nightly-0.2.3-10", nightly = false))
+        assertNull(Version.parse("nightly-0.2.3-10"))
+        assertNull(Version.releaseVersion("v0.2.3-rc1", nightly = false))
+        assertNull(Version.releaseVersion("nightly-broken", nightly = true))
+    }
+
+    @Test
     fun readsSha256sumLine() {
         val h = "a".repeat(64)
         assertEquals(h, Version.sha256Of("$h  chronotif-v0.2.0.apk\n"))

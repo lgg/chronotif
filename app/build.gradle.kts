@@ -6,6 +6,11 @@ plugins {
 // Without it, release builds fall back to the debug key so they stay installable.
 val releaseKeystore: String? = System.getenv("CHRONOTIF_KEYSTORE")
 
+// Reserve the last code in each version's range for stable, above all of its nightlies.
+val nightlyBuild = providers.gradleProperty("nightlyBuild").orNull?.toInt()?.also {
+    require(it in 1..9998) { "nightlyBuild must be between 1 and 9998" }
+}
+
 android {
     namespace = "app.chronotif"
     compileSdk = 36
@@ -14,10 +19,12 @@ android {
         applicationId = "app.chronotif"
         minSdk = 30
         targetSdk = 36
-        // Only bump versionName; versionCode follows it (0.1.0 -> 100, 1.2.3 -> 10203) so every
-        // release can install over the last one. Tag releases as v<versionName>.
-        versionName = "0.2.2"
-        versionCode = versionName!!.split('.').map(String::toInt).fold(0) { acc, p -> acc * 100 + p }
+        // This is the next stable version. CI adds the nightly suffix and build number.
+        versionName = "0.2.3"
+        val baseCode = versionName!!.split('.').map(String::toInt).fold(0) { acc, p -> acc * 100 + p }
+        versionCode = baseCode * 10000 + (nightlyBuild ?: 9999)
+        if (nightlyBuild != null) versionName = "$versionName-nightly.$nightlyBuild"
+        buildConfigField("boolean", "NIGHTLY", (nightlyBuild != null).toString())
     }
 
     signingConfigs {
@@ -49,6 +56,10 @@ android {
         buildConfig = true
     }
 
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     // No Google-encrypted dependency metadata blob in the APK.
     lint {
         // Target 36 on purpose until 37's behaviour changes are tested on real devices.
@@ -63,4 +74,5 @@ android {
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.17")
 }

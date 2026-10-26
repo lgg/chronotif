@@ -87,4 +87,8 @@
     <string name="update_failed_title">Couldn\'t install Chronotif %s</string>
     <string name="update_failed_signature">The update is signed with a different key than this install. Uninstall and install it manually from GitHub Releases.</string>
     <string name="version">Version %s</string>
+    <string name="update_channel_label">Update channel</string>
+    <string name="update_stable">Stable</string>
+    <string name="update_nightly">Nightly</string>
+    <string name="update_channel_desc">Nightly includes changes still being tested. Switching to Stable waits for a newer stable release; it does not downgrade the app.</string>
 </resources>

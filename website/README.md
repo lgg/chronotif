@@ -55,17 +55,18 @@ headless Chromium (set `CHROME=/path/to/chrome` if `chromium` isn't on your `PAT
 
 ## Download links
 
-*Download for Android* links straight to the APK of the newest release. `vite.config.js`
-resolves it at build time from GitHub's public releases API, using the same rule as the
-in-app updater: the newest non-draft release with an `.apk`, pre-releases included. The tag,
-file name and size shown on the page come from that release. Visitors' browsers never call
-GitHub's API.
+*Download stable* links to the APK from GitHub's latest stable release, currently v0.2.1.
+*Download nightly* links to the newest `nightly-<version>-<build>` APK, ordered by version
+and build number. Both buttons appear at the top and bottom of the page. Nightly release
+notes explain the changes still being tested.
 
-- **Rebuild and redeploy after publishing a release**, or the site keeps linking to the
-  previous one (Cloudflare Pages, Netlify and Vercel all offer deploy hooks you can call).
-- If GitHub can't be reached, or with `CHRONOTIF_OFFLINE=1`, the build falls back to
-  `versionName` in `app/build.gradle.kts`, which CI only publishes as a matching tag.
-- The build log prints the URL it chose: `[chronotif] Download links → …`.
+`vite.config.js` resolves the links at build time from GitHub's public API. The stable tag,
+file name and size come from that release. Visitors' browsers never call GitHub's API.
+
+- Rebuild and redeploy after publishing a release or changing the stable release.
+- If GitHub can't be reached, or with `CHRONOTIF_OFFLINE=1`, buttons link to the stable and
+  nightly release pages. The build never guesses a download URL from an unpublished version.
+- The build log prints the stable and nightly download URLs it selected.
 
 ## Deployment
 
@@ -90,7 +91,8 @@ Any static host works. Configure it with:
   under *Settings → Pages*.
 - **Any web server**: `npm run build`, then copy `dist/` to the server's web root.
 
-Hosting and DNS aren't configured yet. Nothing in this repository publishes the site.
+The existing Cloudflare Worker and custom domains are configured in `wrangler.jsonc`.
+With Cloudflare credentials available, `npm run deploy` builds and publishes the site.
 
 ## Keeping it accurate
 
@@ -103,6 +105,5 @@ changes, check the page:
   section. The privacy section describes exactly what the update check sends.
 - "What counts as a check": `CHECK_DWELL_MS` in `ui/PanelActivity.kt` and `LockSession` in
   `LockPolicy.kt`.
-- APK size, tag and release status are read from the newest release at build time (see
-  *Download links*). Links never use `/releases/latest`, because 0.x releases are
-  pre-releases and `/latest` skips those.
+- Stable APK size and tag come from GitHub's latest stable release. Nightly downloads are
+  resolved separately from nightly tags. See *Download links*.
