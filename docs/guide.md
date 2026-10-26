@@ -222,7 +222,7 @@ git push origin v0.2.3
 
 Stable releases are marked as GitHub's latest release, including 0.x versions. Nightlies are
 prereleases and never replace that link. After publishing stable, bump `versionName` to the
-next patch version before publishing more nightlies. v0.2.2 is the initial stable release;
+next patch version before publishing more nightlies. v0.2.1 is the current stable release;
 the notification wake and conversation changes first ship in the 0.2.3 nightly series.
 
 ## Code map
