@@ -34,8 +34,8 @@ import app.chronotif.R
  * front and centre, EARLIER is folded behind a pill. Content follows the lock-screen privacy
  * rules, and anything beyond dismissing goes through the system unlock first. Tap outside a
  * card or swipe up (or unlock with fingerprint/face) to continue to the phone; back reveals the
- * system lock screen. Left alone, it steps aside after [IDLE_MS] so the keyguard's own short
- * timeout turns the screen off, instead of the (much longer) normal screen timeout.
+ * system lock screen. Left alone, it stays visible until Android puts the display to sleep.
+ * Finishing on an idle timer would expose the stock keyguard for another timeout interval.
  */
 class LockActivity : Activity(), NotifList.Host {
 
@@ -47,7 +47,6 @@ class LockActivity : Activity(), NotifList.Host {
     private val render: () -> Unit = { list.render() }
     private var unlocking = false
     private val markSeen = Runnable { LockSession.seen(list.shownUpTo) }
-    private val idle = Runnable { if (!unlocking) finish() }
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -144,14 +143,12 @@ class LockActivity : Activity(), NotifList.Host {
         list.render()
         // Seen long enough to count — committed only if the user goes on to unlock.
         main.postDelayed(markSeen, 1200)
-        resetIdle()
     }
 
     override fun onPause() {
         super.onPause()
         NotifStore.removeListener(render)
         main.removeCallbacks(markSeen)
-        main.removeCallbacks(idle)
         // Unlocked (any method) while we were up: what was shown has now been seen.
         if (!getSystemService(KeyguardManager::class.java).isKeyguardLocked) LockSession.unlocked()
     }
@@ -179,11 +176,6 @@ class LockActivity : Activity(), NotifList.Host {
                 .putExtra(PanelActivity.EXTRA_FOCUS_KEY, e.key)
                 .putExtra(PanelActivity.EXTRA_REPLY_INDEX, actionIndex),
         )
-    }
-
-    private fun resetIdle() {
-        main.removeCallbacks(idle)
-        main.postDelayed(idle, IDLE_MS)
     }
 
     /** Asks the system to unlock (PIN/pattern/biometric bouncer), then runs [then]. */
@@ -221,7 +213,6 @@ class LockActivity : Activity(), NotifList.Host {
     private var tracker: VelocityTracker? = null
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        resetIdle()
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 downY = ev.rawY
@@ -244,10 +235,5 @@ class LockActivity : Activity(), NotifList.Host {
             }
         }
         return super.dispatchTouchEvent(ev)
-    }
-
-    private companion object {
-        /** Matches the stock keyguard's timeout (AOSP config_lockScreenDisplayTimeout). */
-        const val IDLE_MS = 10_000L
     }
 }

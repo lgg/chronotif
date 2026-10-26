@@ -24,7 +24,8 @@ check, and only if you turn it on.
 - On the lock screen, glancing isn't enough. Like iOS, the lock-screen notifications move to
   EARLIER when you **unlock** after they were shown.
 - A notification comes back to NEW only when it actually brings something new: e.g. a new
-  message in an existing chat. Silent refreshes, progress updates and "alert once" updates don't.
+  message in an existing chat. Incoming messages count even when the app marks the update
+  "alert only once". Timestamp refreshes and progress updates don't.
 
 The only persisted state is that last-check timestamp plus your settings, stored in app-private
 storage and excluded from backups.
@@ -71,6 +72,17 @@ storage and excluded from backups.
 After that you never need to open the app again. Use the edge handle or the tile.
 
 ### Updates
+
+Choose **Stable** or **Nightly** under **Settings → Updates → Update channel**. Stable is the
+default in stable APKs. Installing a nightly APK opts into Nightly unless you already chose a
+channel. Both channels use the same app ID and signing key, so updates keep your settings and
+permissions. Nightly contains changes still being tested. Switching back to Stable waits for
+that version's stable release or a newer one; it does not downgrade the app.
+
+Get stable from [the latest release](https://github.com/nagarete/chronotif/releases/latest)
+and nightlies from [the release list](https://github.com/nagarete/chronotif/releases?q=nightly&expanded=true).
+v0.2.2 and older have no channel setting. Install a nightly APK once to opt into Nightly.
+Older updaters ignore nightly tags and continue to receive stable versions.
 
 Turn on *Settings → Updates → Update automatically* and Chronotif checks GitHub Releases once
 a day. When there's a newer version it downloads the APK, checks it against the release's
@@ -123,12 +135,15 @@ Optionally, lock Chronotif in Recents so the system doesn't kill it.
 - **Open a notification**: tap it.
 - **Dismiss**: swipe sideways. Swiping a collapsed stack dismisses the whole stack.
   **Clear** clears EARLIER; × clears an expanded stack.
-- **Expand**: chevron or long-press. Expanded cards show full text, conversation history,
-  pictures and actions.
+- **Expand**: chevron or long-press. Expanded cards show full text, all conversation messages
+  Android currently supplies, pictures and actions. Conversation history includes already-checked
+  messages without requiring you to open EARLIER first.
 - **Reply**: expand, tap the reply action, type, send.
 - **Lock screen**: tap outside a card or swipe up (or use fingerprint/face) to unlock; back
-  reveals the system lock screen. Left untouched for 10 s, it steps aside so the screen turns off
-  as quickly as the stock lock screen. *Settings → Lock screen* chooses Off / *When something is new* (default) /
+  reveals the system lock screen. Left untouched, Chronotif stays visible until Android puts the
+  display to sleep, without a timed handoff to the stock lock screen. This follows the device's
+  display timeout, which can be longer than the stock lock-screen timeout.
+  *Settings → Lock screen* chooses Off / *When something is new* (default) /
   *Whenever there are notifications*.
 
 ## Limitations
@@ -169,17 +184,46 @@ so losing it means every user has to uninstall and reinstall.
 
 ### Releasing on GitHub
 
-`.github/workflows/build.yml` builds and tests every push and PR. Pushing a `v*` tag also publishes
-a GitHub Release with the APK and its SHA-256, which the in-app updater picks up. Tag builds
-require these repository secrets (the job fails without them): `KEYSTORE_B64`
-(`base64 -w0 release.jks`), `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`.
+`.github/workflows/build.yml` builds and tests pushes to main and pull requests. Published
+APKs require these repository secrets: `KEYSTORE_B64` (`base64 -w0 release.jks`),
+`KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD`. Both channels use this same signing key.
+Each release includes an APK and its SHA-256 checksum.
 
-To release, bump `versionName` in `app/build.gradle.kts` (`versionCode` is derived from it),
-commit, and push a matching tag:
+`versionName` in `app/build.gradle.kts` is the next stable version. Nightlies append
+`-nightly.<build>` and use tags `nightly-<version>-<build>`. Their version codes increase with
+the build number; the stable version reserves the highest code in that version's range so
+it can replace its nightlies. Build numbers must be 1 through 9998.
+
+At 01:00 Asia/Jakarta each day, CI publishes a nightly from main if its commit changed since
+the last nightly. You can also run the build workflow manually to publish a nightly from a
+selected branch. Scheduled and manual builds use the workflow run number. GitHub only runs
+the schedule once this workflow is on the default branch.
+
+To publish a specific commit as a nightly, commit it and push a tag with an unused build
+number greater than previous nightlies for the same version:
 
 ```sh
-git tag v0.2.0 && git push origin v0.2.0
+git tag nightly-0.2.3-1
+git push origin nightly-0.2.3-1
 ```
+
+To build that nightly locally:
+
+```sh
+./gradlew testDebugUnitTest lintDebug assembleRelease -PnightlyBuild=1
+```
+
+To publish stable, push a tag matching `versionName`:
+
+```sh
+git tag v0.2.3
+git push origin v0.2.3
+```
+
+Stable releases are marked as GitHub's latest release, including 0.x versions. Nightlies are
+prereleases and never replace that link. After publishing stable, bump `versionName` to the
+next patch version before publishing more nightlies. v0.2.2 is the initial stable release;
+the notification wake and conversation changes first ship in the 0.2.3 nightly series.
 
 ## Code map
 

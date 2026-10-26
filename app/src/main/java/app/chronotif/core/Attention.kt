@@ -51,21 +51,35 @@ object Attention {
     fun advance(lastCheck: Long, seenUpTo: Long) = maxOf(lastCheck, seenUpTo)
 }
 
+/** Identity of the latest incoming message; zero time means the app supplied only plain text. */
+data class MessageStamp(val time: Long, val signature: Int)
+
 /**
  * Tracks when each notification last arrived. Apps re-post the same key constantly
- * (progress, timestamps, silent refreshes); only an update with new content that the app
- * didn't mark as quiet counts as a fresh arrival — e.g. a new message in an existing chat.
+ * (progress, timestamps, silent refreshes). Incoming conversation messages count even when
+ * silent; other content changes count only when the app didn't mark the update as quiet.
  */
 class AlertClock {
-    private class State(val alertTime: Long, val signature: Int)
+    private class State(val alertTime: Long, val signature: Int, val message: MessageStamp?)
 
     private val states = HashMap<String, State>()
 
-    fun onPosted(key: String, postTime: Long, signature: Int, quiet: Boolean): Long {
+    fun onPosted(
+        key: String, postTime: Long, signature: Int, quiet: Boolean,
+        conversation: Boolean = false, message: MessageStamp? = null,
+    ): Long {
         val prev = states[key]
+        val incoming = message != null && (prev?.message == null ||
+            message.time > prev.message.time ||
+            (message.time == 0L && message != prev.message))
+        val arrived = if (conversation) incoming else !quiet && signature != prev?.signature
         val alertTime =
-            if (prev == null || (!quiet && signature != prev.signature)) postTime else prev.alertTime
-        states[key] = State(alertTime, signature)
+            if (prev == null || arrived) postTime else prev.alertTime
+        // Keep the newest incoming marker when an app trims history or adds an outgoing reply.
+        val latest = if (message != null && (prev?.message == null || message.time >= prev.message.time)) {
+            message
+        } else prev?.message
+        states[key] = State(alertTime, signature, latest)
         return alertTime
     }
 

@@ -164,6 +164,16 @@ class SetupActivity : Activity() {
         }
 
         section(R.string.setup_updates)
+        body.addView(text(getString(R.string.update_channel_label), 15f), gap(4))
+        radios(
+            listOf(R.string.update_stable, R.string.update_nightly),
+            selected = if (Prefs.nightlyUpdates) 1 else 0,
+            vertical = false,
+        ) {
+            Prefs.nightlyUpdates = it == 1
+            Prefs.updateFailedVersion = null
+        }
+        body.addView(text(getString(R.string.update_channel_desc), 13f, secondary = true), gap(4))
         toggle(R.string.update_auto, R.string.update_auto_desc, { Prefs.autoUpdate }) {
             Prefs.autoUpdate = it
             Updater.sync(this)

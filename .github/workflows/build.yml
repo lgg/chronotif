@@ -3,38 +3,81 @@ name: build
 on:
   push:
     branches: [main]
-    tags: ["v*"]
+    tags: ["v*", "nightly-*"]
   pull_request:
+  schedule:
+    - cron: "0 18 * * *" # 01:00 Asia/Jakarta
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # only used on tags, to publish the release
+      contents: write
     env:
       KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select release channel
+        id: release
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^ *versionName = "\([0-9.]*\)"/\1/p' app/build.gradle.kts)
+          publish=false
+          nightly=""
+          tag="$GITHUB_REF_NAME"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            [[ "$tag" == "v$version" ]] || { echo "::error::tag does not match versionName $version"; exit 1; }
+            publish=true
+          elif [[ "$GITHUB_REF" == refs/tags/nightly-* ]]; then
+            prefix="nightly-$version-"
+            [[ "$tag" == "$prefix"* ]] || { echo "::error::nightly tag does not match versionName $version"; exit 1; }
+            nightly="${tag#"$prefix"}"
+            publish=true
+          elif [[ "$EVENT" == schedule || "$EVENT" == workflow_dispatch ]]; then
+            nightly="$GITHUB_RUN_NUMBER"
+            tag="nightly-$version-$nightly"
+            publish=true
+            if [[ "$EVENT" == schedule ]]; then
+              previous=$(git for-each-ref --sort=-creatordate --count=1 --format='%(refname:short)' 'refs/tags/nightly-*')
+              if [[ -n "$previous" && "$(git rev-parse "$previous^{commit}")" == "$GITHUB_SHA" ]]; then
+                publish=false
+              fi
+            fi
+          fi
+          if [[ -n "$nightly" ]]; then
+            [[ "$nightly" =~ ^[1-9][0-9]{0,3}$ ]] && (( nightly < 9999 )) || { echo "::error::nightly build must be 1..9998"; exit 1; }
+          fi
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "nightly=$nightly" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
 
-      # Releases must be signed with the same key every time, or the in-app updater (and Android)
-      # refuse to install them over the previous version. The runner's debug key is random.
-      - name: Check release tag and signing key
-        if: startsWith(github.ref, 'refs/tags/v')
+      # Every published APK uses the existing signing key so channel changes preserve app data.
+      - name: Check signing key
+        if: steps.release.outputs.publish == 'true'
         run: |
           [ -n "$KEYSTORE_B64" ] || { echo "::error::KEYSTORE_B64 secret is missing"; exit 1; }
-          name=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' app/build.gradle.kts)
-          [ "v$name" = "$GITHUB_REF_NAME" ] || { echo "::error::tag $GITHUB_REF_NAME != versionName $name"; exit 1; }
 
       - name: Decode signing key
-        if: startsWith(github.ref, 'refs/tags/v') && env.KEYSTORE_B64 != ''
+        if: steps.release.outputs.publish == 'true'
         run: |
           echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "CHRONOTIF_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
@@ -44,16 +87,32 @@ jobs:
           CHRONOTIF_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           CHRONOTIF_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           CHRONOTIF_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleRelease
+          NIGHTLY: ${{ steps.release.outputs.nightly }}
+        run: |
+          args=()
+          if [[ -n "$NIGHTLY" ]]; then args+=("-PnightlyBuild=$NIGHTLY"); fi
+          ./gradlew --no-daemon testDebugUnitTest lintDebug assembleRelease "${args[@]}"
+
+      - name: Check nightly build
+        if: steps.release.outputs.nightly == '' && steps.release.outputs.publish != 'true'
+        run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleRelease -PnightlyBuild=1
 
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: steps.release.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          NIGHTLY: ${{ steps.release.outputs.nightly }}
+          VERSION: ${{ steps.release.outputs.version }}
         run: |
-          apk="chronotif-${GITHUB_REF_NAME}.apk"
+          apk="chronotif-${TAG}.apk"
           cp app/build/outputs/apk/release/app-release.apk "$apk"
           sha256sum "$apk" > "$apk.sha256"
-          # 0.x tags are marked as pre-releases.
-          flag=""; case "$GITHUB_REF_NAME" in v0.*) flag="--prerelease";; esac
-          gh release create "$GITHUB_REF_NAME" "$apk" "$apk.sha256" --generate-notes $flag
+          flags=(--latest)
+          title="$TAG"
+          if [[ -n "$NIGHTLY" ]]; then
+            flags=(--prerelease --latest=false)
+            title="$VERSION-nightly.$NIGHTLY"
+          fi
+          gh release create "$TAG" "$apk" "$apk.sha256" --target "$GITHUB_SHA" \
+            --title "$title" --generate-notes "${flags[@]}"

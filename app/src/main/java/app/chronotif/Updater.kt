@@ -21,6 +21,7 @@ import android.os.Looper
 import app.chronotif.core.Version
 import app.chronotif.ui.SetupActivity
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -39,7 +40,7 @@ import kotlin.concurrent.thread
  * Android itself refuses an APK not signed with the same key as the installed app.
  */
 object Updater {
-    private const val RELEASES = "https://api.github.com/repos/nagarete/chronotif/releases?per_page=10"
+    private const val RELEASES = "https://api.github.com/repos/nagarete/chronotif/releases"
     private const val MAX_APK_BYTES = 50L shl 20
     private const val JOB_ID = 1
     private const val CHANNEL = "updates"
@@ -107,27 +108,34 @@ object Updater {
         }
     }
 
-    /** Newest non-draft release that ships an APK and its checksum, pre-releases included. */
+    /** Stable uses /latest so frequent nightlies cannot hide it from the release list. */
     private fun latest(): Release? {
-        val json = get(RELEASES, api = true).use { it.readBytes().decodeToString() }
-        val list = JSONArray(json)
+        val nightly = Prefs.nightlyUpdates
+        val endpoint = if (nightly) "$RELEASES?per_page=100" else "$RELEASES/latest"
+        val json = get(endpoint, api = true).use { it.readBytes().decodeToString() }
+        val list = if (nightly) JSONArray(json) else JSONArray().put(JSONObject(json))
+        return selectRelease(list, nightly)
+    }
+
+    internal fun selectRelease(list: JSONArray, nightly: Boolean): Release? {
         var best: Release? = null
         for (i in 0 until list.length()) {
             val rel = list.getJSONObject(i)
             if (rel.optBoolean("draft")) continue
-            val tag = rel.optString("tag_name")
+            if (!nightly && rel.optBoolean("prerelease")) continue
+            val version = Version.releaseVersion(rel.optString("tag_name"), nightly) ?: continue
             val assets = rel.optJSONArray("assets") ?: continue
-            var apk: String? = null
-            var sum: String? = null
+            val downloads = mutableMapOf<String, String>()
             for (j in 0 until assets.length()) {
                 val a = assets.getJSONObject(j)
                 val name = a.optString("name")
                 val url = a.optString("browser_download_url")
-                if (name.endsWith(".apk")) apk = url
-                if (name.endsWith(".apk.sha256")) sum = url
+                if (url.isNotBlank()) downloads[name] = url
             }
-            if (apk == null || sum == null || Version.parse(tag) == null) continue
-            if (best == null || Version.isNewer(tag, best.version)) best = Release(tag.removePrefix("v"), apk, sum)
+            val apk = downloads.keys.firstOrNull { it.endsWith(".apk") && "$it.sha256" in downloads } ?: continue
+            if (best == null || Version.isNewer(version, best.version)) {
+                best = Release(version, downloads.getValue(apk), downloads.getValue("$apk.sha256"))
+            }
         }
         return best
     }

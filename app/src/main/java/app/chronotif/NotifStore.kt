@@ -116,8 +116,11 @@ object NotifStore {
 
     private fun put(sbn: StatusBarNotification, map: RankingMap) {
         val n = sbn.notification
-        val quiet = n.flags and Notification.FLAG_ONLY_ALERT_ONCE != 0 || sbn.isOngoing
-        val alertTime = clock.onPosted(sbn.key, sbn.postTime, Content.signature(n), quiet)
+        val ongoing = sbn.isOngoing || n.flags and Notification.FLAG_FOREGROUND_SERVICE != 0
+        val quiet = n.flags and Notification.FLAG_ONLY_ALERT_ONCE != 0 || ongoing
+        val alertTime = clock.onPosted(sbn.key, sbn.postTime, Content.signature(n), quiet,
+            conversation = !ongoing && Content.isConversation(n),
+            message = Content.incomingMessage(n))
         entries.remove(sbn.key)
         entries[sbn.key] = Entry(sbn, rankingOf(sbn.key, map), alertTime)
     }
