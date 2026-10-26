@@ -26,6 +26,8 @@ class Content(
     val bigText: CharSequence?,
     /** Inbox lines or recent messages. */
     val lines: List<CharSequence>,
+    /** When each of [lines] was sent, for conversations; empty otherwise. */
+    val lineTimes: List<Long>,
     val subText: CharSequence?,
     val progress: Progress?,
     val isMedia: Boolean,
@@ -36,7 +38,15 @@ class Content(
     val expandable: Boolean
         get() = !redacted && (bigText != null || lines.size > 1 || (text?.length ?: 0) > 80)
 
+    /** The messages sent after [since] (at least the latest), oldest first; the collapsed New card shows them. */
+    fun messagesSince(since: Long): List<CharSequence> {
+        if (lineTimes.size != lines.size || lines.isEmpty()) return emptyList()
+        return lines.takeLast(lineTimes.count { it > since }.coerceIn(1, MAX_PREVIEW))
+    }
+
     companion object {
+        private const val MAX_PREVIEW = 5
+
         fun of(context: Context, e: Entry, redact: Boolean): Content {
             val appName = Apps.label(context, e.pkg)
             if (redact) {
@@ -46,7 +56,7 @@ class Content(
                     title = pub?.getCharSequence(Notification.EXTRA_TITLE)?.takeIf { it.isNotBlank() } ?: appName,
                     text = pub?.getCharSequence(Notification.EXTRA_TEXT)
                         ?: context.getString(R.string.hidden_content),
-                    bigText = null, lines = emptyList(), subText = null, progress = null,
+                    bigText = null, lines = emptyList(), lineTimes = emptyList(), subText = null, progress = null,
                     isMedia = false, redacted = true,
                 )
             }
@@ -57,6 +67,7 @@ class Content(
             val big = x.getCharSequence(Notification.EXTRA_BIG_TEXT)
             var lines: List<CharSequence> =
                 x.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.filterNotNull().orEmpty()
+            var lineTimes = emptyList<Long>()
 
             val messages = (messages(x, Notification.EXTRA_HISTORIC_MESSAGES) + messages(x))
                 .distinctBy { Triple(it.time, it.senderKey ?: it.sender?.toString(), it.body.toString()) }
@@ -69,6 +80,7 @@ class Content(
                 lines = messages.map { message ->
                     if (group && message.sender != null) "${message.sender}: ${message.body}" else message.body
                 }
+                lineTimes = messages.map { it.time }
                 text = lines.last()
             }
 
@@ -84,6 +96,7 @@ class Content(
                 text = text?.takeIf { it.isNotBlank() },
                 bigText = big?.takeIf { it.isNotBlank() && it.toString() != text?.toString() },
                 lines = lines,
+                lineTimes = lineTimes,
                 subText = x.getCharSequence(Notification.EXTRA_SUB_TEXT)
                     ?: x.getCharSequence(Notification.EXTRA_SUMMARY_TEXT),
                 progress = progress,
