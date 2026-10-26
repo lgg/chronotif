@@ -107,7 +107,7 @@ class ListenerService : NotificationListenerService() {
 
     /** Applies the current edge-handle settings. Called again from setup when they change. */
     fun refreshHandle() {
-        val want = Prefs.handleEnabled && Settings.canDrawOverlays(this)
+        val want = Prefs.enabled && Prefs.handleEnabled && Settings.canDrawOverlays(this)
         if (want) {
             (handle ?: EdgeHandle(this).also { handle = it }).show()
         } else {

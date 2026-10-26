@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.service.quicksettings.TileService
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -71,6 +72,12 @@ class SetupActivity : Activity() {
     private fun build() {
         body.addView(text(getString(R.string.app_name), 28f, bold = true))
         body.addView(text(getString(R.string.setup_intro), 15f, secondary = true), gap(8))
+
+        toggle(R.string.enabled, R.string.enabled_desc, { Prefs.enabled }) {
+            Prefs.enabled = it
+            applyHandle()
+            TileService.requestListeningState(this, ComponentName(this, PanelTile::class.java))
+        }
 
         section(R.string.setup_permissions)
         permission(R.string.perm_listener, R.string.perm_listener_desc,
