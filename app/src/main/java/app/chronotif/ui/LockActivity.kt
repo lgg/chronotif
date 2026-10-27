@@ -2,6 +2,7 @@
 
 package app.chronotif.ui
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.KeyguardManager
 import android.content.BroadcastReceiver
@@ -18,12 +19,14 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.VelocityTracker
 import android.view.WindowInsets
+import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextClock
 import android.window.OnBackInvokedDispatcher
+import app.chronotif.BuildConfig
 import app.chronotif.Entry
 import app.chronotif.LockSession
 import app.chronotif.NotifStore
@@ -34,8 +37,8 @@ import app.chronotif.R
  * front and centre, EARLIER is folded behind a pill. Content follows the lock-screen privacy
  * rules, and anything beyond dismissing goes through the system unlock first. Tap outside a
  * card or swipe up (or unlock with fingerprint/face) to continue to the phone; back reveals the
- * system lock screen. Left alone, it stays visible until Android puts the display to sleep.
- * Finishing on an idle timer would expose the stock keyguard for another timeout interval.
+ * system lock screen. Left alone, the display sleeps after the keyguard's short timeout, with
+ * Chronotif still showing (see [useKeyguardTimeout]).
  */
 class LockActivity : Activity(), NotifList.Host {
 
@@ -60,6 +63,7 @@ class LockActivity : Activity(), NotifList.Host {
         super.onCreate(savedInstanceState)
         setShowWhenLocked(true)
         Ui.edgeToEdge(window)
+        useKeyguardTimeout()
         val pal = Palette(this)
 
         val root = FrameLayout(this).apply { setBackgroundColor(0x73000000) }
@@ -178,6 +182,25 @@ class LockActivity : Activity(), NotifList.Host {
         )
     }
 
+    /**
+     * Covering the keyguard switches Android to the normal (long) screen timeout. Giving our
+     * window the keyguard's short one keeps a single wake session: Chronotif stays up, then the
+     * display sleeps, with no stock lock-screen interval tacked on. Touches still extend it.
+     */
+    @SuppressLint("DiscouragedApi") // The keyguard timeout has no public resource id.
+    private fun useKeyguardTimeout() {
+        val res = android.content.res.Resources.getSystem()
+        val id = res.getIdentifier("config_lockScreenDisplayTimeout", "integer", "android")
+        val ms = (if (id != 0) res.getInteger(id).toLong() else 0L).takeIf { it > 0 } ?: KEYGUARD_TIMEOUT_MS
+        try {
+            val attrs = window.attributes
+            WindowManager.LayoutParams::class.java.getField("userActivityTimeout").setLong(attrs, ms)
+            window.attributes = attrs
+        } catch (e: ReflectiveOperationException) {
+            if (BuildConfig.DEBUG) android.util.Log.w("Chronotif", "keyguard timeout unavailable", e)
+        }
+    }
+
     /** Asks the system to unlock (PIN/pattern/biometric bouncer), then runs [then]. */
     private fun unlock(then: (() -> Unit)?) {
         val km = getSystemService(KeyguardManager::class.java)
@@ -235,5 +258,10 @@ class LockActivity : Activity(), NotifList.Host {
             }
         }
         return super.dispatchTouchEvent(ev)
+    }
+
+    private companion object {
+        /** AOSP's config_lockScreenDisplayTimeout, if the ROM doesn't expose its own. */
+        const val KEYGUARD_TIMEOUT_MS = 10_000L
     }
 }

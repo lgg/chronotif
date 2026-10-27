@@ -163,7 +163,11 @@ class CardView(context: Context, private val cb: CardCallbacks) : LinearLayout(c
 
     private var current: Content? = null
 
-    fun bind(e: Entry, c: Content, style: Style, expanded: Boolean, replyIndex: Int, now: Long) {
+    /** [newSince]: a New card lists every message sent after it, not just the latest. */
+    fun bind(
+        e: Entry, c: Content, style: Style, expanded: Boolean, replyIndex: Int, now: Long,
+        newSince: Long = Long.MAX_VALUE,
+    ) {
         val keyChanged = entry?.key != e.key
         entry = e
         current = c
@@ -198,8 +202,14 @@ class CardView(context: Context, private val cb: CardCallbacks) : LinearLayout(c
         chevron.rotation = if (expanded) 180f else 0f
 
         val conversationExpanded = expanded && c.lines.size > 1 && c.text == c.lines.last()
+        val newMessages = if (expanded) emptyList() else c.messagesSince(newSince)
+        val shownLines = when {
+            expanded && c.lines.size > 1 -> c.lines
+            newMessages.size > 1 -> newMessages
+            else -> emptyList()
+        }
         val bodyText = when {
-            conversationExpanded -> null
+            conversationExpanded || newMessages.size > 1 -> null
             expanded -> c.bigText ?: c.text
             else -> c.text
         }
@@ -218,8 +228,14 @@ class CardView(context: Context, private val cb: CardCallbacks) : LinearLayout(c
 
         // Expanded extras.
         lines.removeAllViews()
-        if (expanded && c.lines.size > 1) for (l in c.lines) {
-            lines.addView(Ui.text(context, 14f, pal.text).apply { text = l }, Ui.lp().apply { topMargin = dp(3) })
+        for (l in shownLines) {
+            lines.addView(Ui.text(context, 14f, pal.text).apply {
+                text = l
+                if (!expanded) {
+                    maxLines = 3
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                }
+            }, Ui.lp().apply { topMargin = dp(3) })
         }
         lines.visibility = if (lines.childCount > 0) VISIBLE else GONE
 

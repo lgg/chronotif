@@ -16,6 +16,7 @@ import android.service.notification.NotificationListenerService.Ranking
 import android.service.notification.StatusBarNotification
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
 import app.chronotif.ui.LockActivity
@@ -58,14 +59,33 @@ class NotificationBehaviorTest {
     }
 
     private fun notification(vararg texts: String): Notification =
+        notification(texts.mapIndexed { i, text -> text to 100L + i })
+
+    private fun notification(messages: List<Pair<String, Long>>): Notification =
         Notification.Builder(context, "messages")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setCategory(Notification.CATEGORY_MESSAGE)
             .setOnlyAlertOnce(true)
             .setStyle(Notification.MessagingStyle(me).also { style ->
-                texts.forEachIndexed { i, text -> style.addMessage(text, 100L + i, sender) }
+                messages.forEach { (text, time) -> style.addMessage(text, time, sender) }
             })
             .build()
+
+    private fun <T> withLockList(block: (NotifList, LinearLayout) -> T): T {
+        val controller = Robolectric.buildActivity(Activity::class.java).setup()
+        try {
+            val activity = controller.get()
+            val container = LinearLayout(activity)
+            val list = NotifList(object : NotifList.Host {
+                override val activity = activity
+                override fun launched() {}
+                override fun guarded(action: () -> Unit) = action()
+            }, container, onLock = true)
+            return block(list, container)
+        } finally {
+            controller.pause().stop().destroy()
+        }
+    }
 
     @Suppress("DEPRECATION")
     private fun post(n: Notification, time: Long = 1000): Entry {
@@ -82,21 +102,24 @@ class NotificationBehaviorTest {
         val updated = post(notification("first", "second"), 2000)
         assertEquals("The new message must not remain trapped in Earlier", 1, NotifStore.newCount())
 
-        val controller = Robolectric.buildActivity(Activity::class.java).setup()
-        try {
-            val activity = controller.get()
-            val container = LinearLayout(activity)
-            val list = NotifList(object : NotifList.Host {
-                override val activity = activity
-                override fun launched() {}
-                override fun guarded(action: () -> Unit) = action()
-            }, container, onLock = true)
+        withLockList { list, container ->
             list.render()
             assertFalse(texts(container).contains("first"))
             list.onToggleExpand(updated)
             assertTrue(texts(container).containsAll(listOf("first", "second")))
-        } finally {
-            controller.pause().stop().destroy()
+        }
+    }
+
+    @Test
+    fun newConversationCardListsEveryMessageSinceTheLastCheckWithoutExpanding() {
+        post(notification(listOf("seen" to 900L)), 900)
+        Prefs.markChecked(1000)
+        post(notification(listOf("seen" to 900L, "Jiah" to 1100L, "Gawd damn" to 1200L)), 1200)
+        withLockList { list, container ->
+            list.render()
+            val shown = texts(container)
+            assertTrue(shown.containsAll(listOf("Jiah", "Gawd damn")))
+            assertFalse("Checked messages stay behind the expand chevron", shown.contains("seen"))
         }
     }
 
@@ -167,10 +190,13 @@ class NotificationBehaviorTest {
     }
 
     @Test
-    fun lockViewStaysUntilScreenOffInsteadOfHandingOffAfterTenSeconds() {
+    fun lockViewUsesTheKeyguardTimeoutAndStaysUntilScreenOff() {
         shadowOf(context.getSystemService(KeyguardManager::class.java)).setKeyguardLocked(true)
         val controller = Robolectric.buildActivity(LockActivity::class.java).setup()
         try {
+            val timeout = WindowManager.LayoutParams::class.java.getField("userActivityTimeout")
+                .getLong(controller.get().window.attributes)
+            assertEquals("The display must sleep on the short keyguard timeout, not the normal one", 10_000L, timeout)
             shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(11))
             assertFalse("Idle must not expose another stock lock-screen interval", controller.get().isFinishing)
             context.sendBroadcast(Intent(Intent.ACTION_SCREEN_OFF))

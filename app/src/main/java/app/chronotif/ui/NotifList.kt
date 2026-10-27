@@ -81,20 +81,21 @@ class NotifList(
             vis[e.key] = v
             v != LockPolicy.Vis.HIDE
         }
-        val s = Attention.sections(all, Prefs.lastCheck)
+        val lastCheck = Prefs.lastCheck
+        val s = Attention.sections(all, lastCheck)
         val rows = ArrayList<Row>()
         shownUpTo = 0L
 
         fun redacted(e: Entry) = vis[e.key] == LockPolicy.Vis.REDACT
 
-        fun card(e: Entry, style: CardView.Style) {
+        fun card(e: Entry, style: CardView.Style, newSince: Long = Long.MAX_VALUE) {
             shownUpTo = maxOf(shownUpTo, e.alertTime)
             rows += Row("c:${e.key}", { CardView(ctx, this) }) { v ->
                 v as CardView
                 val r = redacted(e)
                 val open = e.key in expanded && !r
                 val reply = replying?.takeIf { it.first == e.key }?.second ?: -1
-                v.bind(e, Content.of(ctx, e, r), style, open, reply, now)
+                v.bind(e, Content.of(ctx, e, r), style, open, reply, now, newSince)
                 if (e.key !in pendingDismiss) v.swipe.reset(v)
                 v.layoutParams = gap(8)
             }
@@ -111,7 +112,7 @@ class NotifList(
 
         if (s.fresh.isNotEmpty()) {
             rows += header("h:new", ctx.getString(R.string.section_new) + "  ${s.fresh.size}", null)
-            s.fresh.forEach { card(it, CardView.Style.FULL) }
+            s.fresh.forEach { card(it, CardView.Style.FULL, newSince = lastCheck) }
         }
 
         // Media, navigation, downloads: compact, below what's new.

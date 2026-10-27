@@ -4,13 +4,13 @@ Agreed behavior from the October 2026 bug-report interview. Implemented with aut
 
 ## Wake session
 
-An untouched notification wake is one continuous session. Chronotif remains visible until the display sleeps, without an additional interval showing the stock lock screen. Back explicitly reveals the stock lock screen.
+An untouched notification wake is one continuous session that lasts as long as the stock lock screen would have. Chronotif remains visible until the display sleeps, without an additional interval showing the stock lock screen. Back explicitly reveals the stock lock screen.
 
-The reported failure was approximately ten seconds of Chronotif followed by approximately ten seconds of the stock lock screen. The inactivity callback that finished the activity has been removed. Android now controls the display timeout while Chronotif remains visible. This can be longer than the stock lock-screen timeout; the app does not force sleep or change the device's display settings.
+The first reported failure was approximately ten seconds of Chronotif followed by approximately ten seconds of the stock lock screen, caused by an inactivity timer that finished the activity. Removing that timer exposed a second failure: a window covering the keyguard gets the normal screen timeout (the one used while an app is open), so the display stayed on for the full screen-timeout setting. Chronotif's window now requests the keyguard's own short timeout (`config_lockScreenDisplayTimeout`, ten seconds when the ROM doesn't define it). Touches extend it as they do on the stock lock screen. The device's display settings are not changed.
 
 ## Conversation history
 
-A collapsed conversation card previews its latest message. Expanding a New conversation card shows all messages Android currently supplies for that conversation, including already-checked messages. Revealing Earlier or expanding an app stack must not be a prerequisite.
+A collapsed New conversation card lists every message sent since the last check (the latest five at most), like the stock notification does, without expanding or revealing Earlier. Already-checked messages stay behind the expand chevron. Expanding shows all messages Android currently supplies for that conversation. Earlier cards preview only the latest message.
 
 This covers messages available in active Android notifications. It does not require an archive of messages Android no longer supplies. Lock-screen privacy rules continue to apply.
 
@@ -22,9 +22,9 @@ For structured conversations, incoming message timestamps identify arrivals. Out
 
 ## Verification cases
 
-- Leave a notification wake untouched. Chronotif remains visible until the display sleeps, without an extra stock lock-screen interval.
+- Leave a notification wake untouched. Chronotif remains visible and the display sleeps after the stock lock-screen timeout (about ten seconds), not the normal screen timeout, without an extra stock lock-screen interval.
 - Press Back while Chronotif is visible. The stock lock screen appears.
-- Expand a New conversation containing multiple supplied messages. All supplied messages are accessible without opening Earlier first.
+- Receive several messages in one conversation. The New card lists them all without expanding. Expanding shows the supplied history without opening Earlier first.
 - Check a conversation, then receive another incoming message through a silent update of its notification. The conversation returns to New.
 - Refresh a checked notification without a new incoming message. It remains in Earlier.
 
@@ -32,4 +32,4 @@ For structured conversations, incoming message timestamps identify arrivals. Out
 
 `./gradlew testDebugUnitTest` runs the pure attention-model tests and Android-backed Robolectric tests. Regression tests reproduce the silent message being classified into Earlier, the six-message history cap, and the ten-second activity exit before the fixes. They also cover outgoing replies, historic messages, repeated content, plain-text message updates, and redaction.
 
-The lock-activity test verifies that inactivity leaves Chronotif visible and a screen-off broadcast closes it. It does not emulate HyperOS power management or establish a physical display-sleep duration. Verify that behavior on the reporting phone.
+The lock-activity test verifies that the window requests the keyguard timeout, that inactivity leaves Chronotif visible, and that a screen-off broadcast closes it. On an Android 16 emulator with a 60-second screen timeout, an untouched wake slept after about 11 seconds with Chronotif visible; without the timeout request it stayed on for 60 seconds. HyperOS power management is not emulated. Verify that behavior on the reporting phone.
