@@ -32,7 +32,6 @@ class Content(
     val lineTimes: List<Long>,
     val subText: CharSequence?,
     val progress: Progress?,
-    val isMedia: Boolean,
     val redacted: Boolean,
 ) {
     class Progress(val value: Int, val max: Int, val indeterminate: Boolean)
@@ -59,7 +58,7 @@ class Content(
                     text = pub?.getCharSequence(Notification.EXTRA_TEXT)
                         ?: context.getString(R.string.hidden_content),
                     bigText = null, lines = emptyList(), lineTimes = emptyList(), subText = null, progress = null,
-                    isMedia = false, redacted = true,
+                    redacted = true,
                 )
             }
             val x = e.n.extras
@@ -102,7 +101,6 @@ class Content(
                 subText = x.getCharSequence(Notification.EXTRA_SUB_TEXT)
                     ?: x.getCharSequence(Notification.EXTRA_SUMMARY_TEXT),
                 progress = progress,
-                isMedia = isMedia(e.n),
                 redacted = false,
             )
         }

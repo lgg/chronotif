@@ -28,6 +28,8 @@ Ongoing calls come first, then Media players, then New and Earlier. Every other 
 
 A media player stays a Media player while paused, even though apps drop the ongoing flag when they pause. It never falls into Earlier. Calls, Media players and Running never count as New, and none of them bring up the lock-screen view by themselves. Running never appears on the lock-screen view.
 
+A Media player is drawn from the app's media session, like the system shade's player: artwork, title and artist, previous / play-pause / next, and a seek bar you can drag with elapsed and total time. It has no output (cast) button, because Android offers apps no public way to open the output picker. Apps that share no session fall back to their notification actions. When several apps have players, all of them show, newest first. A player can be swiped away only while paused, and only if the app allows dismissal. On the lock-screen view, players follow the same privacy rules as other cards: when content is hidden, only the app name and controls show.
+
 ## Verification cases
 
 - Leave a notification wake untouched. Chronotif remains visible and the display sleeps after the stock lock-screen timeout (about ten seconds), not the normal screen timeout, without an extra stock lock-screen interval.
@@ -37,6 +39,8 @@ A media player stays a Media player while paused, even though apps drop the ongo
 - Refresh a checked notification without a new incoming message. It remains in Earlier.
 - Open the panel with only always-running services active. Only the "N running" pill shows; tapping it reveals them.
 - Pause music. Its player stays at the top and does not move to Earlier.
+- Play music in Spotify or YouTube Music. The player shows artwork, title, artist, transport controls and a seek bar that moves; dragging it seeks.
+- With "Hide sensitive content" on, the lock-screen view's player shows the app name and controls but not the track.
 
 ## Automated verification
 

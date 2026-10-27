@@ -24,6 +24,10 @@
     <string name="reply_hint">Reply</string>
     <string name="send">Send</string>
     <string name="expand">Expand</string>
+    <string name="media_play">Play</string>
+    <string name="media_pause">Pause</string>
+    <string name="media_previous">Previous</string>
+    <string name="media_next">Next</string>
     <string name="time_now">now</string>
     <string name="time_min">%dm</string>
     <string name="time_hour">%dh</string>

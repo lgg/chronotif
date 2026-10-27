@@ -198,7 +198,7 @@ class CardView(context: Context, private val cb: CardCallbacks) : LinearLayout(c
         time.text = if (e.kind != Kind.NOTIFICATION) "" else Ui.relTime(context, e.alertTime, now)
 
         val acts = if (c.redacted) emptyList() else e.n.actions.orEmpty().take(3)
-        val canExpand = c.expandable || (acts.isNotEmpty() && !c.isMedia)
+        val canExpand = c.expandable || acts.isNotEmpty()
         chevron.visibility = if (canExpand) VISIBLE else GONE
         chevron.rotation = if (expanded) 180f else 0f
 
@@ -252,7 +252,7 @@ class CardView(context: Context, private val cb: CardCallbacks) : LinearLayout(c
         }
 
         actions.removeAllViews()
-        if ((expanded || c.isMedia) && acts.isNotEmpty()) acts.forEachIndexed { i, a ->
+        if (expanded && acts.isNotEmpty()) acts.forEachIndexed { i, a ->
             actions.addView(actionChip(a, e, i), Ui.lp(LayoutParams.WRAP_CONTENT, dp(34)).apply { marginEnd = dp(8) })
         }
         actions.visibility = if (actions.childCount > 0) VISIBLE else GONE

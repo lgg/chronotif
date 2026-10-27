@@ -104,6 +104,15 @@ class NotifList(
             }
         }
 
+        fun player(e: Entry) {
+            rows += Row("mp:${e.key}", { MediaPlayerView(ctx, this) }) { v ->
+                v as MediaPlayerView
+                v.bind(e, Content.of(ctx, e, redacted(e)))
+                if (e.key !in pendingDismiss) v.swipe.reset(v)
+                v.layoutParams = gap(8)
+            }
+        }
+
         if (!NotifStore.connected) {
             rows += message("m:access", R.string.no_access_title, R.string.no_access_body) {
                 host.activity.startActivity(Intent(ctx, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -115,7 +124,7 @@ class NotifList(
 
         // Live state first, like the system shade: calls, then media players.
         s.calls.forEach { card(it, CardView.Style.FULL) }
-        s.media.forEach { card(it, CardView.Style.COMPACT) }
+        s.media.forEach { player(it) }
 
         if (s.fresh.isNotEmpty()) {
             rows += header("h:new", ctx.getString(R.string.section_new) + "  ${s.fresh.size}", null)
