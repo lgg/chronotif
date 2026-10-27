@@ -15,9 +15,13 @@ class PanelTile : TileService() {
 
     override fun onStartListening() {
         val tile = qsTile ?: return
-        val fresh = NotifStore.newCount()
+        val fresh = if (Prefs.enabled) NotifStore.newCount() else 0
         tile.state = if (fresh > 0) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-        tile.subtitle = if (fresh > 0) getString(R.string.tile_new, fresh) else getString(R.string.tile_nothing_new)
+        tile.subtitle = when {
+            !Prefs.enabled -> getString(R.string.tile_off)
+            fresh > 0 -> getString(R.string.tile_new, fresh)
+            else -> getString(R.string.tile_nothing_new)
+        }
         tile.updateTile()
     }
 

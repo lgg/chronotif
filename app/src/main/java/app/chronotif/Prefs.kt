@@ -29,6 +29,11 @@ object Prefs {
         }
     }
 
+    /** Off withholds the edge handle and lock-screen view without touching their settings. */
+    var enabled: Boolean
+        get() = sp.getBoolean("enabled", true)
+        set(v) = sp.edit().putBoolean("enabled", v).apply()
+
     var handleEnabled: Boolean
         get() = sp.getBoolean("handle_enabled", true)
         set(v) = sp.edit().putBoolean("handle_enabled", v).apply()
