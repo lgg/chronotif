@@ -15,7 +15,7 @@ stay accessible without competing for the same attention.
 [Setup help](docs/guide.md#install)
 
 <p align="center">
-  <img src="website/public/screens/panel-480.webp" width="220" alt="Notification panel with New notifications at the top and a compact Ongoing section below.">
+  <img src="website/public/screens/panel-480.webp" width="220" alt="Notification panel with a music player at the top, then notifications under Earlier.">
   &nbsp;
   <img src="website/public/screens/lock-new-480.webp" width="220" alt="Lock-screen view showing five new notifications, newest first.">
   &nbsp;
