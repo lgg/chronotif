@@ -15,6 +15,11 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.os.Process
 import android.service.notification.StatusBarNotification
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.BackgroundColorSpan
+import android.text.style.ForegroundColorSpan
+import android.text.style.TextAppearanceSpan
 import android.util.LruCache
 import app.chronotif.core.Kind
 import app.chronotif.core.MessageStamp
@@ -54,8 +59,9 @@ class Content(
                 val pub = e.n.publicVersion?.extras
                 return Content(
                     appName = appName,
-                    title = pub?.getCharSequence(Notification.EXTRA_TITLE)?.takeIf { it.isNotBlank() } ?: appName,
-                    text = pub?.getCharSequence(Notification.EXTRA_TEXT)
+                    title = pub?.getCharSequence(Notification.EXTRA_TITLE)?.takeIf { it.isNotBlank() }?.let(::uncolored)
+                        ?: appName,
+                    text = pub?.getCharSequence(Notification.EXTRA_TEXT)?.let(::uncolored)
                         ?: context.getString(R.string.hidden_content),
                     bigText = null, lines = emptyList(), lineTimes = emptyList(), subText = null, progress = null,
                     redacted = true,
@@ -93,13 +99,13 @@ class Content(
 
             return Content(
                 appName = appName,
-                title = title?.takeIf { it.isNotBlank() } ?: appName,
-                text = text?.takeIf { it.isNotBlank() },
-                bigText = big?.takeIf { it.isNotBlank() && it.toString() != text?.toString() },
-                lines = lines,
+                title = title?.takeIf { it.isNotBlank() }?.let(::uncolored) ?: appName,
+                text = text?.takeIf { it.isNotBlank() }?.let(::uncolored),
+                bigText = big?.takeIf { it.isNotBlank() && it.toString() != text?.toString() }?.let(::uncolored),
+                lines = lines.map(::uncolored),
                 lineTimes = lineTimes,
-                subText = x.getCharSequence(Notification.EXTRA_SUB_TEXT)
-                    ?: x.getCharSequence(Notification.EXTRA_SUMMARY_TEXT),
+                subText = (x.getCharSequence(Notification.EXTRA_SUB_TEXT)
+                    ?: x.getCharSequence(Notification.EXTRA_SUMMARY_TEXT))?.let(::uncolored),
                 progress = progress,
                 redacted = false,
             )
@@ -156,6 +162,28 @@ class Content(
             // Some chat apps supply only plain text. With no message timestamp, compare content.
             val body = x.getCharSequence(Notification.EXTRA_TEXT)?.takeIf { it.isNotBlank() } ?: return null
             return MessageStamp(0, listOf(x.getCharSequence(Notification.EXTRA_TITLE)?.toString(), body.toString()).hashCode())
+        }
+
+        /**
+         * Drops the app's text colours but keeps bold/italic, as the system shade does: apps colour
+         * for their own background (Gmail greys its snippet), which can vanish on our cards.
+         */
+        private fun uncolored(cs: CharSequence): CharSequence {
+            if (cs !is Spanned) return cs
+            val out = SpannableString(cs)
+            for (span in out.getSpans(0, out.length, Any::class.java)) {
+                when (span) {
+                    is ForegroundColorSpan, is BackgroundColorSpan -> out.removeSpan(span)
+                    is TextAppearanceSpan -> if (span.textColor != null || span.linkTextColor != null) {
+                        val start = out.getSpanStart(span)
+                        val end = out.getSpanEnd(span)
+                        val flags = out.getSpanFlags(span)
+                        out.removeSpan(span)
+                        out.setSpan(TextAppearanceSpan(span.family, span.textStyle, span.textSize, null, null), start, end, flags)
+                    }
+                }
+            }
+            return out
         }
 
         private class Message(val sender: CharSequence?, val senderKey: String?, val body: CharSequence, val time: Long)
