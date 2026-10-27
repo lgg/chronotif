@@ -10,6 +10,7 @@ import android.os.Build
 import android.provider.Settings
 import android.service.notification.NotificationListenerService.Ranking
 import app.chronotif.core.Attention
+import app.chronotif.core.Kind
 
 /** Decides when the lock-screen view appears and what it may reveal. */
 object LockPolicy {
@@ -48,7 +49,8 @@ object LockPolicy {
         if (busy(context)) return false
 
         val lastCheck = Prefs.lastCheck
-        val shown = NotifStore.visible().filter { !it.ongoing && visibility(context, it) != Vis.HIDE }
+        // Calls, media and running work never bring the view up on their own.
+        val shown = NotifStore.visible().filter { it.kind == Kind.NOTIFICATION && visibility(context, it) != Vis.HIDE }
         return when (mode) {
             Prefs.LOCK_ALWAYS -> shown.isNotEmpty()
             else -> shown.any { Attention.isNew(it, lastCheck) }

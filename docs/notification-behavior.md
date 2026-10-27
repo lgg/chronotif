@@ -20,6 +20,14 @@ A new incoming message returns its conversation to New, including when the app s
 
 For structured conversations, incoming message timestamps identify arrivals. Outgoing replies and changes to historic messages do not count. For apps that supply only a message title and body, changed text identifies an arrival; Android supplies no incoming-message identity in that format. Identical plain-text messages cannot be distinguished from reposts.
 
+## Calls, media and Running
+
+Agreed in the October 2026 interview about always-running services crowding the top of the panel.
+
+Ongoing calls come first, then Media players, then New and Earlier. Every other ongoing notification is Running: always-running services, connected devices, step counters, downloads, navigation and timers. Running sits below Earlier behind an "N running" pill and collapses again each time the panel opens. When Running is all there is, only the pill shows.
+
+A media player stays a Media player while paused, even though apps drop the ongoing flag when they pause. It never falls into Earlier. Calls, Media players and Running never count as New, and none of them bring up the lock-screen view by themselves. Running never appears on the lock-screen view.
+
 ## Verification cases
 
 - Leave a notification wake untouched. Chronotif remains visible and the display sleeps after the stock lock-screen timeout (about ten seconds), not the normal screen timeout, without an extra stock lock-screen interval.
@@ -27,6 +35,8 @@ For structured conversations, incoming message timestamps identify arrivals. Out
 - Receive several messages in one conversation. The New card lists them all without expanding. Expanding shows the supplied history without opening Earlier first.
 - Check a conversation, then receive another incoming message through a silent update of its notification. The conversation returns to New.
 - Refresh a checked notification without a new incoming message. It remains in Earlier.
+- Open the panel with only always-running services active. Only the "N running" pill shows; tapping it reveals them.
+- Pause music. Its player stays at the top and does not move to Earlier.
 
 ## Automated verification
 

@@ -19,3 +19,11 @@ One continuous period from the display waking until it sleeps. Chronotif and the
 **Off**:
 Chronotif's surfaces that appear on their own (the edge handle and the lock-screen view) are withheld. Notifications are still tracked and the panel can still be opened on purpose. The user's surface settings are kept for when Chronotif is turned back on.
 _Avoid_: Disabled, Paused
+
+**Media player**:
+A playback control for an app that is playing or paused, shown above everything else. It stays while paused, until the app removes it, and never counts as New.
+_Avoid_: Now playing card
+
+**Running**:
+Notifications for work that continues in the background (always-running services, connected devices, step counters, downloads, navigation, timers). They sit collapsed below Earlier and never count as New. Ongoing calls are not Running; they stay at the top with Media players.
+_Avoid_: Ongoing, Background

@@ -11,7 +11,7 @@ Setup help, notification behaviour, privacy rules, and development details.
 | Notification listener | Mirrors active notifications in memory; opens/dismisses/acts on them | Event-driven, no polling |
 | Edge handle | A slim pill on the screen edge. Tap or swipe it to open the panel. Tinted with your accent colour while something is NEW | One tiny overlay window, no timers |
 | Quick Settings tile | Another way into the panel; shows "N new" | Only when the shade is open |
-| Panel | The shade-like screen: blurred backdrop, NEW / Ongoing / EARLIER | Exists only while open |
+| Panel | The shade-like screen: blurred backdrop, calls and media, NEW / EARLIER, collapsed Running | Exists only while open |
 | Lock-screen view | Shown over the locked keyguard when the screen turns on | Started only on screen-on |
 
 No foreground service, wakelocks or alarms. The only scheduled work is the once-a-day update

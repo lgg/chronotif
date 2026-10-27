@@ -19,6 +19,8 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
+import app.chronotif.core.Attention
+import app.chronotif.core.Kind
 import app.chronotif.ui.LockActivity
 import app.chronotif.ui.NotifList
 import org.junit.After
@@ -88,8 +90,8 @@ class NotificationBehaviorTest {
     }
 
     @Suppress("DEPRECATION")
-    private fun post(n: Notification, time: Long = 1000): Entry {
-        val sbn = StatusBarNotification("example.chat", "example.chat", 1, null, 1000, 0, 0,
+    private fun post(n: Notification, time: Long = 1000, id: Int = 1): Entry {
+        val sbn = StatusBarNotification("example.chat", "example.chat", id, null, 1000, 0, 0,
             n, Process.myUserHandle(), time)
         NotifStore.post(sbn, ranking)
         return NotifStore.get(sbn.key)!!
@@ -206,6 +208,47 @@ class NotificationBehaviorTest {
             controller.pause().stop().destroy()
         }
     }
+
+    @Test
+    fun runningWorkStaysCollapsedBelowEverythingUntilTapped() {
+        post(Notification.Builder(context, "service").setContentTitle("Sync is running")
+            .setOngoing(true).build(), id = 1)
+        val controller = Robolectric.buildActivity(Activity::class.java).setup()
+        try {
+            val activity = controller.get()
+            val container = LinearLayout(activity)
+            val list = NotifList(object : NotifList.Host {
+                override val activity = activity
+                override fun launched() {}
+                override fun guarded(action: () -> Unit) = action()
+            }, container, onLock = false)
+            list.render()
+            val shown = texts(container)
+            assertTrue(shown.contains("1 running"))
+            assertFalse("Running alone isn't announced as empty", shown.contains("No notifications"))
+            assertFalse(shown.contains("Sync is running"))
+            views(container).first { it is TextView && it.text.toString() == "1 running" }.performClick()
+            assertTrue(texts(container).contains("Sync is running"))
+            assertEquals(0, NotifStore.newCount())
+        } finally {
+            controller.pause().stop().destroy()
+        }
+    }
+
+    @Test
+    fun pausedMediaStaysAMediaPlayerInsteadOfFallingIntoEarlier() {
+        // Players drop the ongoing flag when paused.
+        val paused = post(Notification.Builder(context, "media").setContentTitle("Song")
+            .setStyle(Notification.MediaStyle()).build(), 2000)
+        assertEquals(Kind.MEDIA, paused.kind)
+        val s = Attention.sections(NotifStore.visible(), lastCheck = 0)
+        assertEquals(listOf(paused.key), s.media.map { it.key })
+        assertTrue(s.earlier.isEmpty() && s.fresh.isEmpty())
+    }
+
+    private fun views(view: View): List<View> =
+        if (view is ViewGroup) listOf(view) + (0 until view.childCount).flatMap { views(view.getChildAt(it)) }
+        else listOf(view)
 
     private fun texts(view: View): List<String> = when (view) {
         is TextView -> listOf(view.text.toString())

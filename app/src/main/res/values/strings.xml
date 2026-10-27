@@ -9,10 +9,11 @@
     <!-- Panel / lock screen -->
     <string name="section_new">New</string>
     <string name="section_earlier">Earlier</string>
-    <string name="section_ongoing">Ongoing</string>
+    <string name="section_running">Running</string>
     <string name="clear">Clear</string>
     <string name="show_less">Show less</string>
     <string name="earlier_count">%d earlier</string>
+    <string name="running_count">%d running</string>
     <string name="empty_title">No notifications</string>
     <string name="empty_body">You\'re all caught up.</string>
     <string name="no_access_title">Notification access is off</string>

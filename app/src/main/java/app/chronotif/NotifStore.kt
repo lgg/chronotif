@@ -10,6 +10,7 @@ import android.service.notification.NotificationListenerService.RankingMap
 import android.service.notification.StatusBarNotification
 import app.chronotif.core.AlertClock
 import app.chronotif.core.Attention
+import app.chronotif.core.Kind
 import app.chronotif.core.Meta
 
 class Entry(
@@ -21,8 +22,7 @@ class Entry(
     val n: Notification get() = sbn.notification
     val pkg: String get() = sbn.packageName
     override val stackId = "${sbn.packageName}|${sbn.user.hashCode()}"
-    override val ongoing =
-        sbn.isOngoing || n.flags and Notification.FLAG_FOREGROUND_SERVICE != 0
+    override val kind = Content.kind(sbn)
     val clearable: Boolean get() = sbn.isClearable
     val isSummary get() = n.flags and Notification.FLAG_GROUP_SUMMARY != 0
     /** Includes the system's auto-grouping, so its empty summaries can be hidden too. */
@@ -116,10 +116,10 @@ object NotifStore {
 
     private fun put(sbn: StatusBarNotification, map: RankingMap) {
         val n = sbn.notification
-        val ongoing = sbn.isOngoing || n.flags and Notification.FLAG_FOREGROUND_SERVICE != 0
-        val quiet = n.flags and Notification.FLAG_ONLY_ALERT_ONCE != 0 || ongoing
+        val live = Content.kind(sbn) != Kind.NOTIFICATION
+        val quiet = n.flags and Notification.FLAG_ONLY_ALERT_ONCE != 0 || live
         val alertTime = clock.onPosted(sbn.key, sbn.postTime, Content.signature(n), quiet,
-            conversation = !ongoing && Content.isConversation(n),
+            conversation = !live && Content.isConversation(n),
             message = Content.incomingMessage(n))
         entries.remove(sbn.key)
         entries[sbn.key] = Entry(sbn, rankingOf(sbn.key, map), alertTime)

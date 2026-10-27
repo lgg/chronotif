@@ -1,6 +1,7 @@
 // An illustrative model of Chronotif's panel, mirroring core/Attention.kt in the app:
 // one "last check" watermark splits notifications into NEW (arrived after it) and EARLIER
-// (folded into per-app stacks, ordered by their newest member). Ongoing items sit apart.
+// (folded into per-app stacks, ordered by their newest member). Media players sit on top;
+// background work folds into a Running pill at the bottom.
 // Times are in minutes. All content is made up.
 
 const APPS = {
@@ -22,7 +23,8 @@ function initialState() {
     now: 600,
     lastCheck: 560,
     arrivals: 0,
-    ongoing: [{ id: "pod", app: "podcasts", title: "Slow Mornings · Episode 42", body: "Playing" }],
+    media: [{ id: "pod", app: "podcasts", title: "Slow Mornings · Episode 42", body: "Playing" }],
+    running: 2,
     items: [
       { id: "maya", app: "messages", title: "Maya", body: "Running ten minutes late, save me a seat?", alert: 598 },
       { id: "review", app: "calendar", title: "Design review", body: "In 15 minutes · Room 4", alert: 594 },
@@ -78,15 +80,8 @@ function render(state, list, fresh = new Set()) {
   const { fresh: newItems, earlier } = sections(state);
   let html = "";
 
-  html += `<p class="d-head"><span>New<b>${newItems.length}</b></span></p>`;
   html += `<div class="d-list" role="list">`;
-  html += newItems.length
-    ? newItems.map((i) => `<div role="listitem">${card(state, i, fresh.has(i.id) ? "d-arrive" : "")}</div>`).join("")
-    : `<div role="listitem" class="d-empty">Nothing new.</div>`;
-  html += `</div>`;
-
-  html += `<p class="d-head"><span>Ongoing</span></p><div class="d-list" role="list">`;
-  html += state.ongoing
+  html += state.media
     .map((o) => {
       const app = APPS[o.app];
       return `<div role="listitem" class="d-card d-card--ongoing" style="view-transition-name: card-${o.id}">
@@ -95,6 +90,13 @@ function render(state, list, fresh = new Set()) {
       </div>`;
     })
     .join("");
+  html += `</div>`;
+
+  html += `<p class="d-head"><span>New<b>${newItems.length}</b></span></p>`;
+  html += `<div class="d-list" role="list">`;
+  html += newItems.length
+    ? newItems.map((i) => `<div role="listitem">${card(state, i, fresh.has(i.id) ? "d-arrive" : "")}</div>`).join("")
+    : `<div role="listitem" class="d-empty">Nothing new.</div>`;
   html += `</div>`;
 
   if (earlier.length) {
@@ -109,6 +111,8 @@ function render(state, list, fresh = new Set()) {
       .join("");
     html += `</div>`;
   }
+
+  if (state.running) html += `<p class="d-running"><span class="d-clear">${state.running} running</span></p>`;
 
   list.innerHTML = html;
 }
