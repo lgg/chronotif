@@ -38,7 +38,7 @@ prominent, and keep them available for later.
 
 | Section | What you see |
 | --- | --- |
-| Calls and media | Ongoing calls, then music and video players (playing or paused), at the top. These never count as new. |
+| Calls and media | Ongoing calls, then music and video players with artwork, controls and a seek bar (playing or paused), at the top. These never count as new. |
 | New | Notifications that arrived since your last check, newest first. |
 | Earlier | Notifications you've already checked, dimmed and folded into smaller stacks by app. |
 | Running | Always-running services, connected devices, downloads and navigation, collapsed behind an "N running" pill at the bottom. These never count as new and stay off the lock-screen view. |

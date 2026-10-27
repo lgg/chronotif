@@ -22,6 +22,7 @@ import android.widget.TextView
 import app.chronotif.core.Attention
 import app.chronotif.core.Kind
 import app.chronotif.ui.LockActivity
+import app.chronotif.ui.MediaPlayerView
 import app.chronotif.ui.NotifList
 import org.junit.After
 import org.junit.Assert.*
@@ -244,6 +245,34 @@ class NotificationBehaviorTest {
         val s = Attention.sections(NotifStore.visible(), lastCheck = 0)
         assertEquals(listOf(paused.key), s.media.map { it.key })
         assertTrue(s.earlier.isEmpty() && s.fresh.isEmpty())
+    }
+
+    @Test
+    fun mediaPlayerShowsAtTopAndKeepsTitlesOffAPrivateLockScreen() {
+        post(notification("hello"), id = 1)
+        post(Notification.Builder(context, "media").setContentTitle("Secret song").setContentText("Artist")
+            .setStyle(Notification.MediaStyle()).build(), 2000, id = 2)
+        val controller = Robolectric.buildActivity(Activity::class.java).setup()
+        try {
+            val activity = controller.get()
+            fun list(onLock: Boolean) = LinearLayout(activity).also { container ->
+                NotifList(object : NotifList.Host {
+                    override val activity = activity
+                    override fun launched() {}
+                    override fun guarded(action: () -> Unit) = action()
+                }, container, onLock).render()
+            }
+            val panel = list(onLock = false)
+            assertTrue(panel.getChildAt(0) is MediaPlayerView)
+            assertTrue(texts(panel).containsAll(listOf("Secret song", "Artist")))
+
+            Prefs.lockHideContent = true
+            val lock = list(onLock = true)
+            assertTrue(lock.getChildAt(0) is MediaPlayerView)
+            assertFalse(texts(lock).any { it.contains("Secret song") || it == "Artist" })
+        } finally {
+            controller.pause().stop().destroy()
+        }
     }
 
     private fun views(view: View): List<View> =
