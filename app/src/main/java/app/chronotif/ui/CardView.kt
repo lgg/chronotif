@@ -22,6 +22,7 @@ import app.chronotif.Apps
 import app.chronotif.Content
 import app.chronotif.Entry
 import app.chronotif.R
+import app.chronotif.core.Kind
 
 interface CardCallbacks {
     fun onTap(e: Entry, c: Content)
@@ -194,7 +195,7 @@ class CardView(context: Context, private val cb: CardCallbacks) : LinearLayout(c
         if (showApp) app.text = listOfNotNull(c.appName, c.subText).joinToString(" · ")
 
         title.text = c.title
-        time.text = if (e.ongoing) "" else Ui.relTime(context, e.alertTime, now)
+        time.text = if (e.kind != Kind.NOTIFICATION) "" else Ui.relTime(context, e.alertTime, now)
 
         val acts = if (c.redacted) emptyList() else e.n.actions.orEmpty().take(3)
         val canExpand = c.expandable || (acts.isNotEmpty() && !c.isMedia)

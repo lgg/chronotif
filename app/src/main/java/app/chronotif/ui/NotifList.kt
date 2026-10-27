@@ -24,7 +24,7 @@ import app.chronotif.core.Attention
 import app.chronotif.core.Stack
 
 /**
- * Renders the NEW / EARLIER sections into a [LinearLayout], shared by the panel and the
+ * Renders calls, media, NEW / EARLIER and the collapsed Running group into a [LinearLayout], shared by the panel and the
  * lock-screen view. Rows are keyed and views reused, so live updates animate in place
  * instead of rebuilding the list.
  */
@@ -54,6 +54,7 @@ class NotifList(
     private val pendingDismiss = HashSet<String>()
     private var replying: Pair<String, Int>? = null
     private var earlierRevealed = !onLock
+    private var runningRevealed = false
 
     /** Newest arrival time the user has had on screen; feeds the last-check watermark. */
     var shownUpTo = 0L
@@ -83,6 +84,8 @@ class NotifList(
         }
         val lastCheck = Prefs.lastCheck
         val s = Attention.sections(all, lastCheck)
+        // The lock-screen view is about what needs attention; background work stays out of it.
+        val running = if (onLock) emptyList() else s.running
         val rows = ArrayList<Row>()
         shownUpTo = 0L
 
@@ -106,19 +109,17 @@ class NotifList(
                 host.activity.startActivity(Intent(ctx, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 host.launched()
             }
-        } else if (s.isEmpty) {
+        } else if (s.isEmpty && running.isEmpty()) {
             if (!onLock) rows += message("m:empty", R.string.empty_title, R.string.empty_body)
         }
+
+        // Live state first, like the system shade: calls, then media players.
+        s.calls.forEach { card(it, CardView.Style.FULL) }
+        s.media.forEach { card(it, CardView.Style.COMPACT) }
 
         if (s.fresh.isNotEmpty()) {
             rows += header("h:new", ctx.getString(R.string.section_new) + "  ${s.fresh.size}", null)
             s.fresh.forEach { card(it, CardView.Style.FULL, newSince = lastCheck) }
-        }
-
-        // Media, navigation, downloads: compact, below what's new.
-        if (s.ongoing.isNotEmpty()) {
-            rows += header("h:ongoing", ctx.getString(R.string.section_ongoing), null)
-            s.ongoing.forEach { card(it, CardView.Style.COMPACT) }
         }
 
         if (s.earlier.isNotEmpty()) {
@@ -141,6 +142,20 @@ class NotifList(
                         else -> collapsedStack(stack, rows, now, ::redacted)
                     }
                 }
+            }
+        }
+
+        // Always-running services and other background work: out of the way unless asked for.
+        if (running.isNotEmpty()) {
+            if (!runningRevealed) {
+                rows += pill("p:running", ctx.getString(R.string.running_count, running.size)) {
+                    runningRevealed = true
+                    render()
+                }
+            } else {
+                rows += header("h:running", ctx.getString(R.string.section_running),
+                    clear = running.takeIf { l -> l.any { it.clearable } })
+                running.forEach { card(it, CardView.Style.COMPACT) }
             }
         }
 

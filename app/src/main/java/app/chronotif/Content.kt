@@ -14,7 +14,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
 import android.os.Process
+import android.service.notification.StatusBarNotification
 import android.util.LruCache
+import app.chronotif.core.Kind
 import app.chronotif.core.MessageStamp
 
 /** What a card displays, extracted from a notification's extras (no foreign RemoteViews). */
@@ -100,7 +102,7 @@ class Content(
                 subText = x.getCharSequence(Notification.EXTRA_SUB_TEXT)
                     ?: x.getCharSequence(Notification.EXTRA_SUMMARY_TEXT),
                 progress = progress,
-                isMedia = x.getString(Notification.EXTRA_TEMPLATE)?.contains("MediaStyle") == true,
+                isMedia = isMedia(e.n),
                 redacted = false,
             )
         }
@@ -118,6 +120,23 @@ class Content(
                 last?.time,
             ).hashCode()
         }
+
+        /** Media players stay put while paused, when apps drop the ongoing flag. */
+        fun kind(sbn: StatusBarNotification): Kind {
+            val n = sbn.notification
+            val ongoing = sbn.isOngoing || n.flags and Notification.FLAG_FOREGROUND_SERVICE != 0
+            val template = n.extras.getString(Notification.EXTRA_TEMPLATE).orEmpty()
+            return when {
+                isMedia(n) -> Kind.MEDIA
+                template.contains("CallStyle") || (ongoing && n.category == Notification.CATEGORY_CALL) -> Kind.CALL
+                ongoing -> Kind.RUNNING
+                else -> Kind.NOTIFICATION
+            }
+        }
+
+        fun isMedia(n: Notification): Boolean =
+            n.extras.getString(Notification.EXTRA_TEMPLATE)?.contains("MediaStyle") == true ||
+                n.extras.containsKey(Notification.EXTRA_MEDIA_SESSION)
 
         fun isConversation(n: Notification): Boolean =
             n.category == Notification.CATEGORY_MESSAGE || n.extras.containsKey(Notification.EXTRA_MESSAGES)

@@ -11,7 +11,7 @@ class AttentionTest {
         val key: String,
         override val stackId: String,
         override val alertTime: Long,
-        override val ongoing: Boolean = false,
+        override val kind: Kind = Kind.NOTIFICATION,
     ) : Meta
 
     @Test
@@ -37,12 +37,23 @@ class AttentionTest {
     }
 
     @Test
-    fun ongoingIsSeparateAndNeverNew() {
-        val music = N("m", "music", 50, ongoing = true)
-        val s = Attention.sections(listOf(music, N("x", "chat", 60)), lastCheck = 0)
-        assertEquals(listOf("m"), s.ongoing.map { it.key })
+    fun liveKindsAreSeparateAndNeverNew() {
+        val call = N("c", "dialer", 40, Kind.CALL)
+        val music = N("m", "music", 50, Kind.MEDIA)
+        val vpn = N("v", "vpn", 70, Kind.RUNNING)
+        val s = Attention.sections(listOf(music, vpn, call, N("x", "chat", 60)), lastCheck = 0)
+        assertEquals(listOf("c"), s.calls.map { it.key })
+        assertEquals(listOf("m"), s.media.map { it.key })
+        assertEquals(listOf("v"), s.running.map { it.key })
         assertEquals(listOf("x"), s.fresh.map { it.key })
-        assertTrue(!Attention.isNew(music, 0))
+        assertTrue(listOf(call, music, vpn).none { Attention.isNew(it, 0) })
+    }
+
+    @Test
+    fun runningAloneLeavesTheListEmpty() {
+        val s = Attention.sections(listOf(N("v", "vpn", 70, Kind.RUNNING)), lastCheck = 0)
+        assertTrue(s.isEmpty)
+        assertEquals(1, s.running.size)
     }
 
     @Test

@@ -38,9 +38,10 @@ prominent, and keep them available for later.
 
 | Section | What you see |
 | --- | --- |
+| Calls and media | Ongoing calls, then music and video players (playing or paused), at the top. These never count as new. |
 | New | Notifications that arrived since your last check, newest first. |
-| Ongoing | Music, navigation, downloads, and other ongoing tasks. These never count as new. |
 | Earlier | Notifications you've already checked, dimmed and folded into smaller stacks by app. |
+| Running | Always-running services, connected devices, downloads and navigation, collapsed behind an "N running" pill at the bottom. These never count as new and stay off the lock-screen view. |
 
 For example, open the panel to catch up on your messages, then close it. Those
 notifications move to Earlier. The next message appears under New, so you can see

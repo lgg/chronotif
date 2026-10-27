@@ -14,18 +14,31 @@ interface Meta {
     /** Notifications sharing a stack id fold together in EARLIER (one app, one user). */
     val stackId: String
     val alertTime: Long
-    /** Ongoing work (media, navigation, downloads) lives outside NEW/EARLIER. */
-    val ongoing: Boolean
+    val kind: Kind
+}
+
+/** Only [NOTIFICATION]s take part in NEW/EARLIER; the rest are live state, never "new". */
+enum class Kind {
+    NOTIFICATION,
+    /** Ongoing or incoming call: shown first. */
+    CALL,
+    /** A playing or paused media player: shown after calls. */
+    MEDIA,
+    /** Background work (services, connected devices, downloads, navigation): collapsed last. */
+    RUNNING,
 }
 
 class Stack<T>(val id: String, val items: List<T>)
 
 class Sections<T>(
-    val ongoing: List<T>,
+    val calls: List<T>,
+    val media: List<T>,
     val fresh: List<T>,
     val earlier: List<Stack<T>>,
+    val running: List<T>,
 ) {
-    val isEmpty get() = ongoing.isEmpty() && fresh.isEmpty() && earlier.isEmpty()
+    /** Running work alone doesn't make the list non-empty in any way worth announcing. */
+    val isEmpty get() = calls.isEmpty() && media.isEmpty() && fresh.isEmpty() && earlier.isEmpty()
     val earlierCount get() = earlier.sumOf { it.items.size }
 }
 
@@ -34,18 +47,23 @@ object Attention {
     /** Newest first everywhere; EARLIER stacks are ordered by their newest member. */
     fun <T : Meta> sections(items: Collection<T>, lastCheck: Long): Sections<T> {
         val byRecent = items.sortedByDescending { it.alertTime }
-        val ongoing = ArrayList<T>()
+        val calls = ArrayList<T>()
+        val media = ArrayList<T>()
+        val running = ArrayList<T>()
         val fresh = ArrayList<T>()
         val earlier = LinkedHashMap<String, MutableList<T>>()
-        for (item in byRecent) when {
-            item.ongoing -> ongoing += item
-            item.alertTime > lastCheck -> fresh += item
-            else -> earlier.getOrPut(item.stackId) { ArrayList() } += item
+        for (item in byRecent) when (item.kind) {
+            Kind.CALL -> calls += item
+            Kind.MEDIA -> media += item
+            Kind.RUNNING -> running += item
+            Kind.NOTIFICATION ->
+                if (item.alertTime > lastCheck) fresh += item
+                else earlier.getOrPut(item.stackId) { ArrayList() } += item
         }
-        return Sections(ongoing, fresh, earlier.map { (id, list) -> Stack(id, list) })
+        return Sections(calls, media, fresh, earlier.map { (id, list) -> Stack(id, list) }, running)
     }
 
-    fun isNew(item: Meta, lastCheck: Long) = !item.ongoing && item.alertTime > lastCheck
+    fun isNew(item: Meta, lastCheck: Long) = item.kind == Kind.NOTIFICATION && item.alertTime > lastCheck
 
     /** A check never moves the watermark backwards. */
     fun advance(lastCheck: Long, seenUpTo: Long) = maxOf(lastCheck, seenUpTo)
