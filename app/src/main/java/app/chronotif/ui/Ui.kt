@@ -40,7 +40,7 @@ class Palette(context: Context) {
     val chip = if (dark) 0x1FFFFFFF else 0x14000000
     val ripple = if (dark) 0x33FFFFFF else 0x22000000
     val accent = Ui.accent(context)
-    /** Section headers sit directly on the dark scrim. */
+    /** Section headers sit directly on the panel's dark scrim, or the bare wallpaper on the lock screen. */
     val onScrim = 0xFFFFFFFF.toInt()
     val onScrimSecondary = 0xB3FFFFFF.toInt()
     val pill = 0x33FFFFFF
@@ -74,6 +74,9 @@ object Ui {
             includeFontPadding = false
             setLineSpacing(0f, 1.12f)
         }
+
+    /** Keeps white text legible on a bright wallpaper, the way the stock lock screen does. */
+    fun shadow(v: TextView) = v.setShadowLayer(v.dp(4).toFloat(), 0f, 0f, 0x66000000)
 
     fun clipRounded(v: View, radius: Float) {
         v.outlineProvider = object : ViewOutlineProvider() {

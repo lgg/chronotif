@@ -66,7 +66,7 @@ class LockActivity : Activity(), NotifList.Host {
         useKeyguardTimeout()
         val pal = Palette(this)
 
-        val root = FrameLayout(this).apply { setBackgroundColor(0x73000000) }
+        val root = FrameLayout(this)
         val column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
@@ -111,7 +111,10 @@ class LockActivity : Activity(), NotifList.Host {
                 setImageResource(R.drawable.ic_fingerprint)
                 imageTintList = ColorStateList.valueOf(pal.onScrimSecondary)
             }, LinearLayout.LayoutParams(dp(26), dp(26)).apply { bottomMargin = dp(4) })
-            addView(Ui.text(context, 13f, pal.onScrimSecondary).apply { setText(R.string.tap_to_unlock) }, Ui.lp(-2))
+            addView(Ui.text(context, 13f, pal.onScrimSecondary).apply {
+                setText(R.string.tap_to_unlock)
+                Ui.shadow(this)
+            }, Ui.lp(-2))
             setOnClickListener { unlock(null) }
         }
         column.addView(hint, Ui.lp(-1))
