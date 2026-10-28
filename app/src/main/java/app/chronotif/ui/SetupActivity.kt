@@ -8,6 +8,8 @@ import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.drawable.Icon
+import android.text.InputFilter
+import android.text.InputType
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -15,10 +17,12 @@ import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.quicksettings.TileService
 import android.util.TypedValue
+import android.view.inputmethod.EditorInfo
 import android.view.Gravity
 import android.view.View
 import android.view.WindowInsets
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
@@ -62,6 +66,9 @@ class SetupActivity : Activity() {
     override fun onResume() {
         super.onResume()
         refreshers.forEach { it() }
+        // An overlay grant may have changed while the settings screen was in the background.
+        ListenerService.instance?.refreshHandle()
+        ListenerService.instance?.refreshTopSwipe()
         Updater.foreground = true
     }
 
@@ -141,6 +148,60 @@ class SetupActivity : Activity() {
             Prefs.handleHideLandscape = it
             applyHandle()
         }
+
+        section(R.string.top_swipe_section)
+        toggle(R.string.top_swipe_enabled, R.string.top_swipe_desc, { Prefs.topSwipeEnabled }) {
+            Prefs.topSwipeEnabled = it
+            applyTopSwipe()
+        }
+        body.addView(text(getString(R.string.top_swipe_height), 15f), gap(12))
+        val heightSlider = SeekBar(this).apply {
+            max = 99 // 1–100 physical pixels, not density-independent dp.
+            progress = Prefs.topSwipeHeightPx - 1
+        }
+        val heightInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            filters = arrayOf(InputFilter.LengthFilter(3))
+            setSingleLine(true)
+            imeOptions = EditorInfo.IME_ACTION_DONE
+            setText(Prefs.topSwipeHeightPx.toString())
+            setSelectAllOnFocus(true)
+            contentDescription = getString(R.string.top_swipe_height)
+        }
+        fun setHeight(value: Int) {
+            val px = value.coerceIn(1, 100)
+            Prefs.topSwipeHeightPx = px
+            heightSlider.progress = px - 1
+            heightInput.setText(px.toString())
+            heightInput.setSelection(heightInput.text.length)
+            applyTopSwipe()
+        }
+        heightSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar, progress: Int, fromUser: Boolean) {
+                if (fromUser) setHeight(progress + 1)
+            }
+            override fun onStartTrackingTouch(s: SeekBar) {}
+            override fun onStopTrackingTouch(s: SeekBar) {}
+        })
+        body.addView(heightSlider, gap(4))
+        val heightRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        heightRow.addView(heightInput, LinearLayout.LayoutParams(dp(90), -2))
+        heightRow.addView(text(getString(R.string.top_swipe_pixels), 15f),
+            Ui.lp(-2).apply { marginStart = dp(8) })
+        heightRow.addView(Button(this).apply {
+            setText(R.string.top_swipe_apply)
+            setOnClickListener { setHeight(heightInput.text.toString().toIntOrNull() ?: Prefs.topSwipeHeightPx) }
+        }, Ui.lp(-2).apply { marginStart = dp(12) })
+        heightInput.setOnEditorActionListener { _, _, _ ->
+            setHeight(heightInput.text.toString().toIntOrNull() ?: Prefs.topSwipeHeightPx)
+            true
+        }
+        body.addView(heightRow, gap(4))
+        body.addView(text(getString(R.string.top_swipe_warning), 13f, secondary = true), gap(4))
+
         body.addView(text(getString(R.string.tile_hint), 13f, secondary = true), gap(12))
         val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         buttons.addView(Button(this).apply {
@@ -213,6 +274,11 @@ class SetupActivity : Activity() {
 
     private fun applyHandle() {
         ListenerService.instance?.refreshHandle()
+        ListenerService.instance?.refreshTopSwipe()
+    }
+
+    private fun applyTopSwipe() {
+        ListenerService.instance?.refreshTopSwipe()
     }
 
     private fun openListenerSettings() {

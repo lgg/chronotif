@@ -91,11 +91,20 @@ jobs:
         run: |
           args=()
           if [[ -n "$NIGHTLY" ]]; then args+=("-PnightlyBuild=$NIGHTLY"); fi
-          ./gradlew --no-daemon testDebugUnitTest lintDebug assembleRelease "${args[@]}"
+          ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug assembleRelease "${args[@]}"
 
       - name: Check nightly build
         if: steps.release.outputs.nightly == '' && steps.release.outputs.publish != 'true'
         run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleRelease -PnightlyBuild=1
+
+      - name: Upload separately installable test APK
+        if: steps.release.outputs.publish != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: chronotif-test-apk-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Publish release
         if: steps.release.outputs.publish == 'true'

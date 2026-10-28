@@ -10,6 +10,7 @@ Setup help, notification behaviour, privacy rules, and development details.
 |---|---|---|
 | Notification listener | Mirrors active notifications in memory; opens/dismisses/acts on them | Event-driven, no polling |
 | Edge handle | A slim pill on the screen edge. Tap or swipe it to open the panel. Tinted with your accent colour while something is NEW | One tiny overlay window, no timers |
+| Top-edge swipe (optional, experimental) | Invisible gesture strip just below the status bar. Downward swipe opens the panel. Height 1–100 physical px, independent switch | One small overlay while enabled; no polling |
 | Quick Settings tile | Another way into the panel; shows "N new" | Only when the shade is open |
 | Panel | The shade-like screen: blurred backdrop, calls and media, NEW / EARLIER, collapsed Running | Exists only while open |
 | Lock-screen view | Shown over the locked keyguard when the screen turns on | Started only on screen-on |
@@ -145,7 +146,8 @@ Optionally, lock Chronotif in Recents so the system doesn't kill it.
 
 ## Using it
 
-- **Open the panel**: tap the edge handle, or swipe it down/inward; or use the QS tile.
+- **Open the panel**: tap the edge handle, or swipe it down/inward; use the optional top-edge downward swipe (enable under *Settings → Top-edge gesture*); or use the QS tile.
+- **Top-edge gesture**: disabled by default. Set the touch strip height from 1 to 100 **physical pixels** with a slider or exact numeric entry. Changes apply immediately. Turn off the switch independently if it blocks controls in an app. The strip consumes touches that begin within it, including taps. It is hidden in landscape and while the device is locked; the real status bar and system shade are unchanged.
 - **Close**: back, tap empty space, or fling up at the end of the list.
 - **Open a notification**: tap it.
 - **Dismiss**: swipe sideways. Swiping a collapsed stack dismisses the whole stack.
@@ -169,8 +171,9 @@ Optionally, lock Chronotif in Recents so the system doesn't kill it.
 Android doesn't let a third-party app replace the system shade or lock screen, so Chronotif
 works **alongside** them:
 
-- Swiping down from the top still opens the system shade. Heads-up banners are still the
-  system's.
+- Swiping down **from the system status bar** still opens the system shade. The optional
+  top-edge gesture starts just below it; a ROM may position overlays differently.
+  Heads-up banners are still the system's.
 - The lock-screen view is an activity on top of the (still locked) keyguard. You may briefly see
   the system lock screen as the screen turns on. It shows your home wallpaper.
 - On stock Android 8+, the system posts "Chronotif is displaying over other apps". Long-press it
@@ -250,6 +253,7 @@ app/src/main/java/app/chronotif/
   NotifStore.kt         in-memory mirror of active notifications
   ListenerService.kt    the notification listener; screen on/off/unlock events
   EdgeHandle.kt         edge overlay
+  TopSwipeTrigger.kt    optional transparent top-edge swipe overlay
   PanelTile.kt          Quick Settings tile
   LockPolicy.kt         when the lock view appears and what it may reveal
   Content.kt            extracting text/messages/pictures from notifications; app labels & icons

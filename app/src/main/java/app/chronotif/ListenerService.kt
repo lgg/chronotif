@@ -2,6 +2,7 @@
 
 package app.chronotif
 
+import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
@@ -9,6 +10,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -32,14 +34,24 @@ class ListenerService : NotificationListenerService() {
     }
 
     private var handle: EdgeHandle? = null
+    private var topSwipe: TopSwipeTrigger? = null
     private var receiverRegistered = false
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
-                Intent.ACTION_SCREEN_ON -> if (LockPolicy.shouldShow(context)) showLockView()
-                Intent.ACTION_SCREEN_OFF -> LockSession.reset()
-                Intent.ACTION_USER_PRESENT -> LockSession.unlocked()
+                Intent.ACTION_SCREEN_ON -> {
+                    if (LockPolicy.shouldShow(context)) showLockView()
+                    refreshTopSwipe()
+                }
+                Intent.ACTION_SCREEN_OFF -> {
+                    LockSession.reset()
+                    refreshTopSwipe()
+                }
+                Intent.ACTION_USER_PRESENT -> {
+                    LockSession.unlocked()
+                    refreshTopSwipe()
+                }
             }
         }
     }
@@ -64,6 +76,7 @@ class ListenerService : NotificationListenerService() {
             receiverRegistered = true
         }
         refreshHandle()
+        refreshTopSwipe()
     }
 
     override fun onListenerDisconnected() {
@@ -86,6 +99,8 @@ class ListenerService : NotificationListenerService() {
         }
         handle?.hide()
         handle = null
+        topSwipe?.hide()
+        topSwipe = null
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification, rankingMap: RankingMap) {
@@ -103,6 +118,7 @@ class ListenerService : NotificationListenerService() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         handle?.update()
+        topSwipe?.update()
     }
 
     /** Applies the current edge-handle settings. Called again from setup when they change. */
@@ -113,6 +129,20 @@ class ListenerService : NotificationListenerService() {
         } else {
             handle?.hide()
             handle = null
+        }
+    }
+
+    /** Top trigger is an optional touch overlay, never shown on a locked or sleeping screen. */
+    fun refreshTopSwipe() {
+        val unlocked = !getSystemService(KeyguardManager::class.java).isKeyguardLocked
+        val awake = getSystemService(PowerManager::class.java).isInteractive
+        val want = Prefs.enabled && Prefs.topSwipeEnabled &&
+            Settings.canDrawOverlays(this) && unlocked && awake
+        if (want) {
+            (topSwipe ?: TopSwipeTrigger(this).also { topSwipe = it }).show()
+        } else {
+            topSwipe?.hide()
+            topSwipe = null
         }
     }
 
