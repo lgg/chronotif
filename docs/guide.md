@@ -190,9 +190,13 @@ It has package ID `app.chronotif.dev` and does **not** replace an official
 
 For a test build, open the fork's **Actions → build** workflow and choose
 **Run workflow → feature/top-edge-swipe-trigger** (enable Actions in GitHub for the
-fork first, if it asks). Download the `chronotif-test-apk-*` artifact from the
-completed run, unzip it, and install `app-debug.apk`. You may need to allow
-installation from the browser or file manager used to open the APK.
+fork first, if it asks). A successful manual run publishes a test **pre-release**
+with a directly downloadable APK under **Releases**. Alternatively, download the
+`chronotif-test-apk-*` artifact from the run, unzip it, and install
+`app-debug.apk`. You may need to allow installation from the browser or
+file manager used to open the APK. As GitHub-hosted runners may use a fresh debug
+signing key each run, updating between different test builds can require
+uninstalling the previous **Chronotif Test** first; the official app is unaffected.
 
 **Before testing:** turn off the official Chronotif's listener/overlays while
 using Chronotif Test so both apps do not draw competing handles or lock views.

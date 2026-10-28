@@ -106,6 +106,23 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      # Manual fork test builds can be installed straight from Releases, without
+      # any production signing secrets. They use the separate .dev package ID.
+      - name: Publish manually requested test prerelease
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="test-top-swipe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          apk="chronotif-test-${tag}.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "$apk"
+          sha256sum "$apk" > "$apk.sha256"
+          gh release create "$tag" "$apk" "$apk.sha256" --target "$GITHUB_SHA" \
+            --title "Chronotif Test (top-edge swipe) ${GITHUB_RUN_NUMBER}" \
+            --notes "Experimental Android test build (app.chronotif.dev). It installs beside the official Chronotif. Top-edge gesture is disabled by default. Install at your own risk; to upgrade to another test run you may need to uninstall the previous test APK due to ephemeral debug signing." \
+            --prerelease --latest=false
+
       - name: Publish release
         if: steps.release.outputs.publish == 'true'
         env:
