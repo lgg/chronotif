@@ -1,0 +1,94 @@
+name: Fork-only: open upstream draft PR
+
+# Deliberately excluded from the upstream feature branch.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/ci-trigger/upstream-pr.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  propose:
+    if: >-
+      github.repository == 'lgg/chronotif' &&
+      github.actor == 'lgg' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.head_commit.message == 'ci(fork): submit draft upstream PR')
+    runs-on: [self-hosted, Windows, X64]
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check local interactive GitHub CLI login
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $gh = 'C:\Program Files\GitHub CLI\gh.exe'
+          if (-not (Test-Path -LiteralPath $gh)) { throw 'GitHub CLI is not installed' }
+          # Do not let the fork-scoped GitHub Actions token shadow a personal gh login.
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          & $gh auth status *> $null
+          if ($LASTEXITCODE -ne 0) {
+            throw 'The runner has no local gh login with access to create an upstream PR. No secrets have been printed.'
+          }
+          Write-Host 'Local GitHub CLI authentication is present; no token printed.'
+      - name: Create draft PR referencing issue 20
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $gh = 'C:\Program Files\GitHub CLI\gh.exe'
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          $existing = & $gh pr list --repo nagarete/chronotif --head lgg:feature/top-edge-swipe-upstream --state all --json url --jq '.[0].url'
+          if ($LASTEXITCODE -ne 0) { throw 'Could not inspect existing upstream PRs' }
+          if ($existing) {
+            Write-Host "Already exists: $existing"
+            exit 0
+          }
+          $body = @'
+          ## What and why
+
+          Draft proof-of-concept for #20, open for design feedback before requesting a merge.
+
+          Add an optional transparent application-overlay strip **immediately below** the Android status bar so a deliberate downward swipe can open the existing Chronotif panel:
+          - Independently switchable and **disabled by default**.
+          - Height **1–200 physical pixels**, with a slider and precise numeric entry; changes take effect immediately and persist.
+          - Gesture detection rejects taps, sideways swipes and upward drags. The strip still intercepts touches that start inside it, including taps, so the height and enable switch are user-controlled.
+          - Hidden while locked, screen-off, in landscape, and while Chronotif's panel is open.
+          - Preserves native SystemUI notification shade, Quick Settings, original edge handle and lock-screen privacy behavior.
+          - No root, Shizuku, ADB, accessibility service, new dependency, polling, wake lock or extra network access.
+
+          **Android limitation:** application overlays cannot intercept swipes originating in the real system status bar. The feature only reacts below it.
+
+          The original idea in #20 was a maximum of 100 px; after using that configuration on a real Redmi, a higher optional ceiling seemed useful, so the prototype allows up to 200 px. The default height is 16 px and the feature defaults to OFF.
+
+          This is a single clean commit against upstream `main` containing **only the feature**. No changes to the original GitHub Actions workflow, Gradle build configuration or signing, and no fork-only CI/local machine paths.
+
+          ## How I tested it
+
+          - **Real phone:** Redmi Note 12S (23030RAC7Y), Android 15, HyperOS 2.0.211.0.VHZEUXM.
+          - Installed and tried the initial prototype with a 100 px trigger. Downward gesture worked reliably in initial testing, including on top of other apps, without obvious interference.
+          - The new 200 px limit is tested by unit tests and a fork-only local Windows CI run (`testDebugUnitTest lintDebug assembleDebug`). **200 px itself has not yet been manually tested on the phone.**
+          - Can supply a recording/screenshots on request.
+
+          ## Checklist
+
+          - [x] `./gradlew testDebugUnitTest lintDebug assembleDebug` passes for the 200 px branch (fork-only Windows runner)
+          - [x] No additional network use, analytics, background services, wakelocks or dependencies
+          - [x] Lock-screen privacy behavior remains unchanged
+          - [x] Happy to contribute this under GPL-3.0-or-later
+
+          Happy to adapt the approach or split the PR as the maintainer prefers.
+          '@
+          $body = ($body -split "`r?`n" | ForEach-Object { $_ -replace '^          ', '' }) -join "`n"
+          $bodyPath = Join-Path $env:RUNNER_TEMP 'chronotif-upstream-pr.md'
+          $utf8 = New-Object System.Text.UTF8Encoding -ArgumentList $false
+          [System.IO.File]::WriteAllText($bodyPath, $body, $utf8)
+          & $gh pr create --repo nagarete/chronotif --head lgg:feature/top-edge-swipe-upstream --base main --draft --title 'Add optional adjustable top-edge swipe to open Chronotif' --body-file $bodyPath
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub CLI could not create an upstream PR; maybe local account lacks permissions' }
