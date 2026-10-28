@@ -91,10 +91,7 @@ jobs:
           $bodyPath = Join-Path $env:RUNNER_TEMP 'chronotif-upstream-pr.md'
           $utf8 = New-Object System.Text.UTF8Encoding -ArgumentList $false
           [System.IO.File]::WriteAllText($bodyPath, $body, $utf8)
-          if ($existing) {
-            & $gh pr edit 21 --repo nagarete/chronotif --body-file $bodyPath
-            if ($LASTEXITCODE -ne 0) { throw 'Could not update the draft upstream PR body' }
-          } else {
-            & $gh pr create --repo nagarete/chronotif --head lgg:feature/top-edge-swipe-upstream --base main --draft --title 'Add optional adjustable top-edge swipe to open Chronotif' --body-file $bodyPath
-            if ($LASTEXITCODE -ne 0) { throw 'GitHub CLI could not create an upstream PR' }
-          }
+          # PR #21 has already been created and verified. Update it directly.
+          # gh pr list --head does not reliably match the cross-fork head label.
+          & $gh pr edit 21 --repo nagarete/chronotif --body-file $bodyPath
+          if ($LASTEXITCODE -ne 0) { throw 'Could not update the draft upstream PR body' }
