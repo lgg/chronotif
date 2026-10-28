@@ -1,6 +1,2 @@
-One-shot owner-triggered submission of the tested feature to nagarete/chronotif.
-Source: lgg:feature/top-edge-swipe-upstream
-Base: nagarete:main
-Related issue: https://github.com/nagarete/chronotif/issues/20
-Local Windows CI build #6 successful: https://github.com/lgg/chronotif/actions/runs/40781231100
-Draft PR for maintainer discussion.
+Follow-up: update existing draft PR #21 with clean ASCII range, verified fork-only CI and test APK link.
+Previous run created PR #21 successfully.
