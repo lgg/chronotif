@@ -1,0 +1,5 @@
+Fork-only manual CI request.
+Source: feature/top-edge-swipe-trigger
+Target: Windows self-hosted runner, standard labels.
+Build: Chronotif Test APK; publish prerelease to lgg/chronotif.
+Requested via ChatGPT on 2026-10-29.
