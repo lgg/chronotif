@@ -1,3 +1,4 @@
-Fork-only one-shot CI build request #5
-Source: feature/top-edge-swipe-trigger
-Reason: Robolectric TopSwipePrefsTest now pins SDK 35.
+Fork-only one-shot CI build #6
+source_ref: feature/top-edge-swipe-trigger
+Change: top gesture height max 200 physical pixels. 
+Run unit tests, lint, compile, and publish test prerelease.
