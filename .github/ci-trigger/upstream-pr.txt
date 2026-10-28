@@ -1,2 +1,2 @@
-Follow-up: update existing draft PR #21 with clean ASCII range, verified fork-only CI and test APK link.
-Previous run created PR #21 successfully.
+One-shot existing PR #21 body update #2.
+Use direct gh pr edit to correct 1-200 px text and add CI links.
