@@ -11,6 +11,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.view.MotionEvent
+import android.view.ViewConfiguration
 import android.view.VelocityTracker
 import android.view.View
 import android.view.WindowInsets
@@ -27,6 +28,7 @@ import app.chronotif.Prefs
 import app.chronotif.R
 import java.text.DateFormat
 import java.util.Date
+import kotlin.math.abs
 
 /**
  * The shade-like panel. Opens from the edge handle or Quick Settings tile, closes on back,
@@ -39,6 +41,17 @@ class PanelActivity : Activity(), NotifList.Host {
         const val EXTRA_FOCUS_KEY = "focus_key"
         const val EXTRA_REPLY_INDEX = "reply_index"
         private const val CHECK_DWELL_MS = 1500L
+
+        /** Only an unmoving tap that begins and ends below the list may dismiss it. */
+        internal fun isEmptySpaceTap(
+            enabled: Boolean,
+            startedInBlank: Boolean,
+            endedInBlank: Boolean,
+            dx: Float,
+            dy: Float,
+            slop: Float,
+        ): Boolean = enabled && startedInBlank && endedInBlank &&
+            abs(dx) <= slop && abs(dy) <= slop
     }
 
     override val activity: Activity get() = this
@@ -52,6 +65,9 @@ class PanelActivity : Activity(), NotifList.Host {
     private var resumedAt = 0L
     private var interacted = false
     private var closing = false
+    private var blankDownX = 0f
+    private var blankDownY = 0f
+    private var blankTapCandidate = false
 
     private val render: () -> Unit = { list.render() }
     private val ticker = object : Runnable {
@@ -61,6 +77,7 @@ class PanelActivity : Activity(), NotifList.Host {
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Ui.edgeToEdge(window)
@@ -85,7 +102,8 @@ class PanelActivity : Activity(), NotifList.Host {
         date = Ui.text(this, 15f, pal.onScrimSecondary, bold = true, lines = 1)
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(6), dp(8), dp(6), dp(4))
+            // Match the left/right inset of notification and media cards.
+            setPadding(dp(12), dp(8), dp(12), dp(4))
             addView(Ui.text(context, 30f, pal.onScrim, bold = true, lines = 1).apply {
                 setText(R.string.tile_label)
             })
@@ -103,6 +121,42 @@ class PanelActivity : Activity(), NotifList.Host {
             clipToPadding = false
             overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
             addView(column, FrameLayout.LayoutParams(-1, -2))
+        }
+        // ScrollView fills the screen but its child column only wraps the cards.
+        // The full-screen scroll view receives touches BELOW that column, not the scrim.
+        // A passive touch listener keeps normal scrolling and all child interactions.
+        val touchSlop = ViewConfiguration.get(this).scaledTouchSlop.toFloat()
+        scroll.setOnTouchListener { _, ev ->
+            when (ev.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    blankDownX = ev.x
+                    blankDownY = ev.y
+                    blankTapCandidate = Prefs.tapEmptySpaceToClose &&
+                        ev.y > column.bottom - scroll.scrollY
+                }
+                MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_CANCEL ->
+                    blankTapCandidate = false
+                MotionEvent.ACTION_MOVE -> if (blankTapCandidate &&
+                    (abs(ev.x - blankDownX) > touchSlop || abs(ev.y - blankDownY) > touchSlop)) {
+                    blankTapCandidate = false
+                }
+                MotionEvent.ACTION_UP -> {
+                    val shouldClose = isEmptySpaceTap(
+                        Prefs.tapEmptySpaceToClose,
+                        blankTapCandidate,
+                        ev.y > column.bottom - scroll.scrollY,
+                        ev.x - blankDownX,
+                        ev.y - blankDownY,
+                        touchSlop,
+                    )
+                    blankTapCandidate = false
+                    if (shouldClose) {
+                        close()
+                        return@setOnTouchListener true
+                    }
+                }
+            }
+            false
         }
         root.addView(scroll, FrameLayout.LayoutParams(-1, -1, Gravity.TOP))
         root.setOnApplyWindowInsetsListener { _, insets ->

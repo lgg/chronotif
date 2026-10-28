@@ -118,6 +118,8 @@ class SetupActivity : Activity() {
         }
 
         section(R.string.setup_panel)
+        toggle(R.string.tap_empty_space_to_close, R.string.tap_empty_space_to_close_desc,
+            { Prefs.tapEmptySpaceToClose }) { Prefs.tapEmptySpaceToClose = it }
         toggle(R.string.handle_enabled, R.string.handle_enabled_desc, { Prefs.handleEnabled }) {
             Prefs.handleEnabled = it
             applyHandle()

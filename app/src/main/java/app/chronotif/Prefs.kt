@@ -38,6 +38,11 @@ object Prefs {
         get() = sp.getBoolean("handle_enabled", true)
         set(v) = sp.edit().putBoolean("handle_enabled", v).apply()
 
+    /** Optional: dismiss the panel by tapping blank viewport space below the last card. */
+    var tapEmptySpaceToClose: Boolean
+        get() = sp.getBoolean("tap_empty_space_to_close", false)
+        set(v) = sp.edit().putBoolean("tap_empty_space_to_close", v).apply()
+
     var handleRight: Boolean
         get() = sp.getBoolean("handle_right", true)
         set(v) = sp.edit().putBoolean("handle_right", v).apply()

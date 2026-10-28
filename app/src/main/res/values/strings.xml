@@ -53,6 +53,8 @@
     <string name="open">Open</string>
 
     <string name="setup_panel">Panel</string>
+    <string name="tap_empty_space_to_close">Tap empty space to close panel</string>
+    <string name="tap_empty_space_to_close_desc">When enabled, tapping the blank area below the last notification closes the panel. Scrolling and taps on cards and playback controls stay unchanged. Off by default.</string>
     <string name="handle_enabled">Edge handle</string>
     <string name="handle_enabled_desc">A thin handle at the screen edge. Tap or swipe it to open the panel. It lights up when something is new.</string>
     <string name="handle_side">Side</string>
