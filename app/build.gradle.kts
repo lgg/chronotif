@@ -39,11 +39,6 @@ android {
     }
 
     buildTypes {
-        debug {
-            // A separately installable build for testing without replacing the official app.
-            applicationIdSuffix = ".dev"
-            versionNameSuffix = "-test"
-        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

@@ -182,30 +182,6 @@ works **alongside** them:
 - Apps that refuse input while *any* overlay is on screen (rare, mostly banking) may complain.
   Disable the edge handle and use the tile instead.
 
-## Testing the optional top-edge trigger in this fork
-
-Use the separately installable **Chronotif Test** APK from a GitHub Actions build.
-It has package ID `app.chronotif.dev` and does **not** replace an official
-`app.chronotif` installation or its saved preferences.
-
-For a test build, open the fork's **Actions → build** workflow and choose
-**Run workflow → feature/top-edge-swipe-trigger** (enable Actions in GitHub for the
-fork first, if it asks). A successful manual run publishes a test **pre-release**
-with a directly downloadable APK under **Releases**. Alternatively, download the
-`chronotif-test-apk-*` artifact from the run, unzip it, and install
-`app-debug.apk`. You may need to allow installation from the browser or
-file manager used to open the APK. As GitHub-hosted runners may use a fresh debug
-signing key each run, updating between different test builds can require
-uninstalling the previous **Chronotif Test** first; the official app is unaffected.
-
-**Before testing:** turn off the official Chronotif's listener/overlays while
-using Chronotif Test so both apps do not draw competing handles or lock views.
-Grant notification and overlay access separately to the test app; permissions
-are per app. The test build starts with the top gesture **OFF**. Enable it
-under *Panel → Top-edge gesture*, then try heights such as 13 or 24 physical px.
-The system status bar itself still belongs to Android. If a target app loses
-touches near the top, switch off the independent top-edge gesture toggle.
-
 ## Build
 
 Requirements: JDK 17+ and the Android SDK (platform 36).
@@ -302,39 +278,3 @@ vulnerabilities privately.
 Chronotif is free software, licensed under the **GNU General Public License v3.0 or later**
 (GPL-3.0-or-later). See [LICENSE](../LICENSE). You may use, study, modify and share it. Modified
 versions you distribute must stay open source under the same license.
-
-
-### Windows self-hosted CI in lgg/chronotif
-
-The experimental fork uses the self-hosted runner labels `self-hosted`, `Windows`,
-`X64`, and `chronotif-ci`. This job does **not** call `actions/setup-java`,
-`sdkmanager`, or any system installer. It verifies the tools and fails early if
-they are missing. Gradle Wrapper still downloads Gradle and Java dependencies
-to its cache on first use (network access is required).
-
-Machine tools verified on October 29, 2026:
-- JDK: `C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot`
-- Android SDK: `D:\Android\Sdk`
-- Git and GitHub CLI: installed.
-- **Still install before build:** `platforms;android-36` and
-  `build-tools;36.0.0`, using the existing SDK manager.
-- GitHub Actions runner registration and its `chronotif-ci` label must be
-  confirmed separately (an interactive runner will not show as a Windows service).
-
-In Windows PowerShell:
-
-```powershell
-& "D:\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat" --sdk_root="D:\Android\Sdk" "platforms;android-36" "build-tools;36.0.0"
-```
-
-To build the test APK, register a Windows x64 self-hosted runner for this
-repository (or an available shared runner), apply the `chronotif-ci` label,
-then open **Actions → build → Run workflow**, select
-`feature/top-edge-swipe-trigger` and run. The successful run publishes the
-APK in this fork's Releases as a prerelease, without consuming Actions artifact
-storage. Gradle's cache is placed on `D:\Android\gradle-chronotif`.
-
-**Safety:** external fork PRs are not executed on the personal runner.
-The fork must enable GitHub Actions and an online runner must match all labels.
-Only trusted collaborators should have the ability to dispatch workflows
-on a personal computer.
