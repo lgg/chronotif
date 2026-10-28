@@ -48,8 +48,7 @@ jobs:
           $existing = & $gh pr list --repo nagarete/chronotif --head lgg:feature/top-edge-swipe-upstream --state all --json url --jq '.[0].url'
           if ($LASTEXITCODE -ne 0) { throw 'Could not inspect existing upstream PRs' }
           if ($existing) {
-            Write-Host "Already exists: $existing"
-            exit 0
+            Write-Host "Updating the existing upstream PR: $existing"
           }
           $body = @'
           ## What and why
@@ -58,7 +57,7 @@ jobs:
 
           Add an optional transparent application-overlay strip **immediately below** the Android status bar so a deliberate downward swipe can open the existing Chronotif panel:
           - Independently switchable and **disabled by default**.
-          - Height **1–200 physical pixels**, with a slider and precise numeric entry; changes take effect immediately and persist.
+          - Height **1-200 physical pixels**, with a slider and precise numeric entry; changes take effect immediately and persist.
           - Gesture detection rejects taps, sideways swipes and upward drags. The strip still intercepts touches that start inside it, including taps, so the height and enable switch are user-controlled.
           - Hidden while locked, screen-off, in landscape, and while Chronotif's panel is open.
           - Preserves native SystemUI notification shade, Quick Settings, original edge handle and lock-screen privacy behavior.
@@ -73,6 +72,8 @@ jobs:
           ## How I tested it
 
           - **Real phone:** Redmi Note 12S (23030RAC7Y), Android 15, HyperOS 2.0.211.0.VHZEUXM.
+          - **Passing fork CI:** https://github.com/lgg/chronotif/actions/runs/40781231100 (unit tests, lint, debug APK).
+          - **Test APK:** https://github.com/lgg/chronotif/releases/tag/chronotif-test-40781231100-1
           - Installed and tried the initial prototype with a 100 px trigger. Downward gesture worked reliably in initial testing, including on top of other apps, without obvious interference.
           - The new 200 px limit is tested by unit tests and a fork-only local Windows CI run (`testDebugUnitTest lintDebug assembleDebug`). **200 px itself has not yet been manually tested on the phone.**
           - Can supply a recording/screenshots on request.
@@ -90,5 +91,10 @@ jobs:
           $bodyPath = Join-Path $env:RUNNER_TEMP 'chronotif-upstream-pr.md'
           $utf8 = New-Object System.Text.UTF8Encoding -ArgumentList $false
           [System.IO.File]::WriteAllText($bodyPath, $body, $utf8)
-          & $gh pr create --repo nagarete/chronotif --head lgg:feature/top-edge-swipe-upstream --base main --draft --title 'Add optional adjustable top-edge swipe to open Chronotif' --body-file $bodyPath
-          if ($LASTEXITCODE -ne 0) { throw 'GitHub CLI could not create an upstream PR; maybe local account lacks permissions' }
+          if ($existing) {
+            & $gh pr edit 21 --repo nagarete/chronotif --body-file $bodyPath
+            if ($LASTEXITCODE -ne 0) { throw 'Could not update the draft upstream PR body' }
+          } else {
+            & $gh pr create --repo nagarete/chronotif --head lgg:feature/top-edge-swipe-upstream --base main --draft --title 'Add optional adjustable top-edge swipe to open Chronotif' --body-file $bodyPath
+            if ($LASTEXITCODE -ne 0) { throw 'GitHub CLI could not create an upstream PR' }
+          }
