@@ -68,13 +68,14 @@ jobs:
           if ($gradle.Contains('applicationIdSuffix = ".dev"')) {
             Write-Host "Test app suffix already configured in source"
           } else {
-            $replacement = $anchor + "`n" + @'
-                  debug {
-                      applicationIdSuffix = ".dev"
-                      versionNameSuffix = "-test"
-                  }
-          '@.TrimEnd() + "`n"
-            $patched = $gradle.Replace($anchor, $replacement)
+            $replacement = @(
+            '    buildTypes {',
+            '        debug {',
+            '            applicationIdSuffix = ".dev"',
+            '            versionNameSuffix = "-test"',
+            '        }'
+          ) -join "`n"
+          $patched = $gradle.Replace($anchor, $replacement)
             $utf8 = New-Object System.Text.UTF8Encoding -ArgumentList $false
             [System.IO.File]::WriteAllText((Join-Path $PWD $path), $patched, $utf8)
           }
