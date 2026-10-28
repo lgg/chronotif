@@ -1,0 +1,148 @@
+name: 'Fork-only: submit panel UX PRs'
+
+# Only runs inside the owner's fork, never as part of the upstream feature PR.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/ci-trigger/panel-ux-prs.txt'
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    if: >-
+      github.repository == 'lgg/chronotif' &&
+      github.actor == 'lgg' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.head_commit.message == 'ci(fork): submit panel UX PRs'
+    runs-on: [self-hosted, Windows, X64]
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Submit isolated reviewed panel UX PRs
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $gh = 'C:\Program Files\GitHub CLI\gh.exe'
+          if (-not (Test-Path -LiteralPath $gh)) { throw 'GitHub CLI is unavailable' }
+          Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
+          Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
+          & $gh auth status *> $null
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub CLI is not authenticated' }
+
+          $json = & $gh api 'repos/nagarete/chronotif/pulls?state=open&per_page=100'
+          if ($LASTEXITCODE -ne 0) { throw 'Could not inspect existing upstream PRs' }
+          $existingPrs = @($json | ConvertFrom-Json)
+
+          $tapBody = @'
+          ## What and why
+
+          Prototype implementation for #22 (Closes #22 when merged).
+
+          The panel has a full-screen ScrollView even when the notification
+          column ends halfway down the screen, so taps in that blank space
+          cannot reach the existing scrim click handler.
+
+          Add an optional "Tap empty space to close panel" switch, OFF by
+          default. A short tap that starts and ends below the last card
+          dismisses the panel when enabled. Scrolling, existing upward-fling
+          dismissal, notification cards and media controls remain unaffected.
+          The preference persists across launches.
+
+          No modifications to upstream GitHub Actions, Gradle configuration,
+          dependencies, signing, network access or other unrelated features.
+
+          ## How I tested it
+
+          - Redmi Note 12S (23030RAC7Y), Android 15,
+            HyperOS 2.0.211.0.VHZEUXM.
+          - Tested on the real phone: optional blank-area dismissal works.
+          - Local fork-only Windows runner: tests, lint and APK successful:
+            https://github.com/lgg/chronotif/actions/runs/40783160648
+          - Screenshot and context in issue #22.
+          - This is an isolated upstream-based single-commit change.
+            It does not contain the top-edge gesture or header alignment.
+
+          ## Checklist
+
+          - [x] testDebugUnitTest lintDebug assembleDebug passed in the combined test build
+          - [x] No extra network calls, services, polling, wakelocks or dependencies
+          - [x] Lock-screen privacy behavior unchanged
+          - [x] Happy to contribute under GPL-3.0-or-later
+
+          Since the new interaction is optional, this PR is a draft for design
+          discussion. Happy to adjust the approach to your preference.
+          '@
+
+          $alignmentBody = @'
+          ## What and why
+
+          Fixes #23.
+
+          The title/date header in PanelActivity uses 6 dp horizontal padding,
+          while the notification/media card container uses 12 dp. The differing
+          left edges create a visible misalignment (screenshot in issue #23).
+          Match the header padding to 12 dp, preserving its typography,
+          vertical spacing and all existing card interactions.
+
+          Includes a Robolectric layout regression test. One isolated commit
+          from upstream main; no CI or Gradle changes and no other features.
+
+          ## How I tested it
+
+          - Redmi Note 12S (23030RAC7Y), Android 15,
+            HyperOS 2.0.211.0.VHZEUXM.
+          - Tested the combined APK on the phone: header and cards now align.
+          - Local fork-only Windows runner: tests, lint and APK successful:
+            https://github.com/lgg/chronotif/actions/runs/40783160648
+          - Before screenshot in issue #23.
+
+          ## Checklist
+
+          - [x] testDebugUnitTest lintDebug assembleDebug passed in the combined test build
+          - [x] No extra network calls, services, polling, wakelocks or dependencies
+          - [x] Lock-screen privacy behavior unchanged
+          - [x] Happy to contribute under GPL-3.0-or-later
+
+          Thank you for Chronotif! Hope this small UI polish is useful.
+          '@
+
+          $items = @(
+            @{
+              Head = 'lgg:feature/tap-empty-panel-to-dismiss'
+              Title = 'Add optional tap on empty space to dismiss panel'
+              Draft = $true
+              Body = $tapBody
+              Number = 22
+            },
+            @{
+              Head = 'lgg:fix/panel-header-card-alignment'
+              Title = 'Align panel title and date with notification cards'
+              Draft = $false
+              Body = $alignmentBody
+              Number = 23
+            }
+          )
+
+          $utf8 = New-Object System.Text.UTF8Encoding -ArgumentList $false
+          foreach ($item in $items) {
+            $found = @($existingPrs | Where-Object { $_.head.label -eq $item.Head })
+            if ($found.Count -gt 0) {
+              Write-Host ("Already exists for issue #{0}: {1}" -f $item.Number, $found[0].html_url)
+              continue
+            }
+            $path = Join-Path $env:RUNNER_TEMP ("chronotif-issue-{0}-pr.md" -f $item.Number)
+            $body = ($item.Body -split "\r?\n" | ForEach-Object { $_ -replace '^          ', '' }) -join [Environment]::NewLine
+            [System.IO.File]::WriteAllText($path, $body, $utf8)
+            $argsList = @('pr', 'create', '--repo', 'nagarete/chronotif', '--base', 'main',
+              '--head', $item.Head, '--title', $item.Title, '--body-file', $path)
+            if ($item.Draft) { $argsList += '--draft' }
+            & $gh @argsList
+            if ($LASTEXITCODE -ne 0) {
+              throw ("Unable to create PR for issue #{0}" -f $item.Number)
+            }
+          }
