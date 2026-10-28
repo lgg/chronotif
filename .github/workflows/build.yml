@@ -6,7 +6,7 @@ on:
     tags: ["v*", "nightly-*"]
   pull_request:
   schedule:
-    - cron: "0 18 * * *" # 01:00 Asia/Jakarta
+    - cron: "0 18 * * *" # 01:00 Asia/Jakarta (upstream default)
   workflow_dispatch:
 
 permissions:
@@ -18,112 +18,141 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Never execute PR code from another repository on a personal self-hosted PC.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, Windows, X64, chronotif-ci]
     permissions:
       contents: write
+    defaults:
+      run:
+        shell: powershell
     env:
-      KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+      # Existing installations on the Windows machine; NEVER auto-install SDK/JDK.
+      ANDROID_HOME: 'D:\Android\Sdk'
+      JAVA_HOME: 'C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot'
+      # Keep Gradle's project-specific cache off the crowded C: drive.
+      GRADLE_USER_HOME: 'D:\Android\gradle-chronotif'
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify locally installed build tools (no installs)
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $checks = @(
+            "$env:JAVA_HOME\bin\javac.exe",
+            "$env:ANDROID_HOME\platforms\android-36\android.jar",
+            "$env:ANDROID_HOME\build-tools\36.0.0\aapt2.exe",
+            ".\gradlew.bat"
+          )
+          foreach ($path in $checks) {
+            if (-not (Test-Path -LiteralPath $path)) {
+              throw "Missing local tool: $path. Install it manually before rerunning; CI will not install it."
+            }
+            Write-Host "OK: $path"
+          }
+          & "$env:JAVA_HOME\bin\java.exe" -version
+          if ($LASTEXITCODE -ne 0) { throw 'Java version check failed' }
+          & git --version
+          if ($LASTEXITCODE -ne 0) { throw 'Git is missing' }
+          & gh --version
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub CLI is missing' }
 
       - name: Select release channel
         id: release
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $gradleFile = Get-Content 'app/build.gradle.kts' -Raw
+          $versionMatch = [regex]::Match($gradleFile, 'versionName\s*=\s*"([0-9.]+)"')
+          if (-not $versionMatch.Success) { throw 'Cannot read versionName from app/build.gradle.kts' }
+          $version = $versionMatch.Groups[1].Value
+          $publish = 'false'
+          $nightly = ''
+          $tag = $env:GITHUB_REF_NAME
+
+          if ($env:GITHUB_REF.StartsWith('refs/tags/v')) {
+            if ($tag -ne "v$version") { throw "Tag $tag doesn't match version $version" }
+            $publish = 'true'
+          } elseif ($env:GITHUB_REF.StartsWith('refs/tags/nightly-')) {
+            $prefix = "nightly-$version-"
+            if (-not $tag.StartsWith($prefix)) { throw "Tag $tag doesn't match version $version" }
+            $nightly = $tag.Substring($prefix.Length)
+            $publish = 'true'
+          } elseif ($env:GITHUB_EVENT_NAME -eq 'schedule') {
+            $nightly = "$env:GITHUB_RUN_NUMBER"
+            $tag = "nightly-$version-$nightly"
+            $publish = 'true'
+            $previous = (& git for-each-ref --sort=-creatordate --count=1 --format='%(refname:short)' 'refs/tags/nightly-*' | Select-Object -First 1)
+            if ($previous) {
+              $previousSha = (& git rev-parse "$previous^{commit}").Trim()
+              if ($previousSha -eq $env:GITHUB_SHA) { $publish = 'false' }
+            }
+          }
+
+          if ($nightly) {
+            $num = 0
+            if (-not [int]::TryParse($nightly, [ref]$num) -or $num -lt 1 -or $num -gt 9998) {
+              throw 'Nightly build number must be in 1..9998'
+            }
+          }
+          @(
+            "publish=$publish",
+            "nightly=$nightly",
+            "tag=$tag",
+            "version=$version"
+          ) | Add-Content -Path $env:GITHUB_OUTPUT -Encoding UTF8
+
+      - name: Check release signing key
+        if: steps.release.outputs.publish == 'true'
         env:
-          EVENT: ${{ github.event_name }}
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
         run: |
-          set -euo pipefail
-          version=$(sed -n 's/^ *versionName = "\([0-9.]*\)"/\1/p' app/build.gradle.kts)
-          publish=false
-          nightly=""
-          tag="$GITHUB_REF_NAME"
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            [[ "$tag" == "v$version" ]] || { echo "::error::tag does not match versionName $version"; exit 1; }
-            publish=true
-          elif [[ "$GITHUB_REF" == refs/tags/nightly-* ]]; then
-            prefix="nightly-$version-"
-            [[ "$tag" == "$prefix"* ]] || { echo "::error::nightly tag does not match versionName $version"; exit 1; }
-            nightly="${tag#"$prefix"}"
-            publish=true
-          elif [[ "$EVENT" == schedule ]]; then
-            nightly="$GITHUB_RUN_NUMBER"
-            tag="nightly-$version-$nightly"
-            publish=true
-            if [[ "$EVENT" == schedule ]]; then
-              previous=$(git for-each-ref --sort=-creatordate --count=1 --format='%(refname:short)' 'refs/tags/nightly-*')
-              if [[ -n "$previous" && "$(git rev-parse "$previous^{commit}")" == "$GITHUB_SHA" ]]; then
-                publish=false
-              fi
-            fi
-          fi
-          if [[ -n "$nightly" ]]; then
-            [[ "$nightly" =~ ^[1-9][0-9]{0,3}$ ]] && (( nightly < 9999 )) || { echo "::error::nightly build must be 1..9998"; exit 1; }
-          fi
-          echo "publish=$publish" >> "$GITHUB_OUTPUT"
-          echo "nightly=$nightly" >> "$GITHUB_OUTPUT"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if (-not $env:KEYSTORE_B64) {
+            throw 'KEYSTORE_B64 is missing; signed official releases need existing signing secrets'
+          }
+          $keystore = Join-Path $env:RUNNER_TEMP 'chronotif-release.jks'
+          [System.IO.File]::WriteAllBytes($keystore, [Convert]::FromBase64String($env:KEYSTORE_B64))
+          "CHRONOTIF_KEYSTORE=$keystore" | Add-Content -Path $env:GITHUB_ENV -Encoding UTF8
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      # Every published APK uses the existing signing key so channel changes preserve app data.
-      - name: Check signing key
-        if: steps.release.outputs.publish == 'true'
-        run: |
-          [ -n "$KEYSTORE_B64" ] || { echo "::error::KEYSTORE_B64 secret is missing"; exit 1; }
-
-      - name: Decode signing key
-        if: steps.release.outputs.publish == 'true'
-        run: |
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
-          echo "CHRONOTIF_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
-
-      - name: Build and test
+      - name: Build and test with existing SDK/JDK
         env:
           CHRONOTIF_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           CHRONOTIF_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           CHRONOTIF_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           NIGHTLY: ${{ steps.release.outputs.nightly }}
         run: |
-          args=()
-          if [[ -n "$NIGHTLY" ]]; then args+=("-PnightlyBuild=$NIGHTLY"); fi
-          ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug assembleRelease "${args[@]}"
+          $tasks = @('--no-daemon', 'testDebugUnitTest', 'lintDebug', 'assembleDebug', 'assembleRelease')
+          if ($env:NIGHTLY) { $tasks += "-PnightlyBuild=$env:NIGHTLY" }
+          & .\gradlew.bat @tasks
+          if ($LASTEXITCODE -ne 0) { throw "Gradle failed: $LASTEXITCODE" }
 
-      - name: Check nightly build
+      - name: Check nightly variant
         if: steps.release.outputs.nightly == '' && steps.release.outputs.publish != 'true'
-        run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleRelease -PnightlyBuild=1
+        run: |
+          & .\gradlew.bat --no-daemon testDebugUnitTest lintDebug assembleRelease '-PnightlyBuild=1'
+          if ($LASTEXITCODE -ne 0) { throw "Nightly variant failed: $LASTEXITCODE" }
 
-      - name: Upload separately installable test APK
-        if: steps.release.outputs.publish != 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: chronotif-test-apk-${{ github.run_number }}
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 14
-
-      # Manual fork test builds can be installed straight from Releases, without
-      # any production signing secrets. They use the separate .dev package ID.
-      - name: Publish manually requested test prerelease
+      # No Actions artifact storage; manual runs publish a downloadable APK to Releases.
+      - name: Publish test APK for direct phone installation
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-          tag="test-top-swipe-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          apk="chronotif-test-${tag}.apk"
-          cp app/build/outputs/apk/debug/app-debug.apk "$apk"
-          sha256sum "$apk" > "$apk.sha256"
-          gh release create "$tag" "$apk" "$apk.sha256" --target "$GITHUB_SHA" \
-            --title "Chronotif Test (top-edge swipe) ${GITHUB_RUN_NUMBER}" \
-            --notes "Experimental Android test build (app.chronotif.dev). It installs beside the official Chronotif. Top-edge gesture is disabled by default. Install at your own risk; to upgrade to another test run you may need to uninstall the previous test APK due to ephemeral debug signing." \
-            --prerelease --latest=false
+          $ErrorActionPreference = 'Stop'
+          $tag = "test-top-swipe-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $source = 'app\build\outputs\apk\debug\app-debug.apk'
+          if (-not (Test-Path -LiteralPath $source)) { throw "APK not generated: $source" }
+          $apk = "chronotif-test-$tag.apk"
+          Copy-Item -LiteralPath $source -Destination $apk
+          $hash = (Get-FileHash -LiteralPath $apk -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $apk" | Set-Content -Path "$apk.sha256" -Encoding ASCII
+          & gh release create $tag $apk "$apk.sha256" --target $env:GITHUB_SHA --title "Chronotif Test (top-edge swipe) $env:GITHUB_RUN_NUMBER" --notes 'Experimental test build (app.chronotif.dev), installed beside official Chronotif. Top-edge swipe is OFF by default. Debug signing may change between runner environments.' --prerelease --latest=false
+          if ($LASTEXITCODE -ne 0) { throw "Test release publication failed: $LASTEXITCODE" }
 
-      - name: Publish release
+      - name: Publish signed stable or nightly release
         if: steps.release.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -131,14 +160,16 @@ jobs:
           NIGHTLY: ${{ steps.release.outputs.nightly }}
           VERSION: ${{ steps.release.outputs.version }}
         run: |
-          apk="chronotif-${TAG}.apk"
-          cp app/build/outputs/apk/release/app-release.apk "$apk"
-          sha256sum "$apk" > "$apk.sha256"
-          flags=(--latest)
-          title="$TAG"
-          if [[ -n "$NIGHTLY" ]]; then
-            flags=(--prerelease --latest=false)
-            title="$VERSION-nightly.$NIGHTLY"
-          fi
-          gh release create "$TAG" "$apk" "$apk.sha256" --target "$GITHUB_SHA" \
-            --title "$title" --generate-notes "${flags[@]}"
+          $ErrorActionPreference = 'Stop'
+          $apk = "chronotif-$env:TAG.apk"
+          Copy-Item 'app\build\outputs\apk\release\app-release.apk' $apk
+          $hash = (Get-FileHash -LiteralPath $apk -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $apk" | Set-Content -Path "$apk.sha256" -Encoding ASCII
+          $flags = @('--latest')
+          $title = $env:TAG
+          if ($env:NIGHTLY) {
+            $flags = @('--prerelease', '--latest=false')
+            $title = "$env:VERSION-nightly.$env:NIGHTLY"
+          }
+          & gh release create $env:TAG $apk "$apk.sha256" --target $env:GITHUB_SHA --title $title --generate-notes @flags
+          if ($LASTEXITCODE -ne 0) { throw "Release publication failed: $LASTEXITCODE" }
