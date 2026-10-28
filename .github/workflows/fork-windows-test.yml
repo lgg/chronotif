@@ -18,7 +18,9 @@ jobs:
   test-apk:
     # No PR trigger; restrict executing code on a personal Windows machine to the owner.
     if: github.repository == 'lgg/chronotif' && github.actor == 'lgg'
-    runs-on: [self-hosted, Windows, X64, chronotif-ci]
+    # GitHub runner *name* (chronotif-runner-ci) is not automatically a label.
+    # Use built-in labels so a registered Windows x64 runner can accept the job.
+    runs-on: [self-hosted, Windows, X64]
     permissions:
       contents: write  # Needed only to publish the manual test prerelease.
     defaults:

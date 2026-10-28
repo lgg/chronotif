@@ -6,17 +6,21 @@ The upstream `.github/workflows/build.yml` remains unmodified by feature changes
 
 ## Build on the existing Windows PC
 
-The private Windows x64 runner must be registered with this repo (or an eligible
-organization runner) and carry the additional label `chronotif-ci`.
+The Windows x64 runner named `chronotif-runner-ci` must be registered with
+`lgg/chronotif` and show **Online** in GitHub → Settings → Actions → Runners.
+The workflow now requires only GitHub's standard labels `self-hosted`,
+`Windows`, and `X64` — its runner **name does not need to be a label**.
+This is safe when the intended runner is the only Windows x64 runner
+available to this repository.
 
 - Existing JDK 17: `C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot`
 - Existing Android SDK root: `D:\Android\Sdk`
-- Needed Android SDK packages: `platforms;android-36` and `build-tools;36.0.0`
+- Verified installed October 29, 2026: Android SDK `platforms;android-36` and `build-tools;36.0.0` (both local Test-Path checks returned True).
 - Git and `gh` already installed.
 - Wrapper 9.8.2 and Android Gradle Plugin 9.4.1 may download Gradle/Maven
   dependencies into `D:\Android\gradle-chronotif` the first time.
 
-Install the two missing Android SDK packages **manually** before running CI:
+If these SDK packages ever need reinstalling, use the command below manually:
 
 ```powershell
 & "D:\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat" --sdk_root="D:\Android\Sdk" "platforms;android-36" "build-tools;36.0.0"
