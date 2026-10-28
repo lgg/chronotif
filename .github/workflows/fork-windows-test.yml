@@ -46,7 +46,7 @@ jobs:
       - name: Checkout fork feature branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.source_ref || 'feature/top-edge-swipe-trigger' }}
+          ref: ${{ inputs.source_ref || 'feature/panel-ux-test' }}
           persist-credentials: false
 
       - name: Verify existing tools (no installations)
@@ -119,5 +119,5 @@ jobs:
           Copy-Item 'app\build\outputs\apk\debug\app-debug.apk' $apk
           $hash = (Get-FileHash $apk -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  $apk" | Set-Content "$apk.sha256" -Encoding ASCII
-          & "$env:GH_CLI_EXE" release create $tag $apk "$apk.sha256" --target $sourceSha --title "Chronotif Test / $env:GITHUB_RUN_NUMBER" --notes 'Fork-only Windows self-hosted test build; app.chronotif.dev installs alongside official Chronotif. Top gesture is OFF by default. Built from the selected source ref; Gradle adjustments were made only in the runner workspace.' --prerelease --latest=false
+          & "$env:GH_CLI_EXE" release create $tag $apk "$apk.sha256" --target $sourceSha --title "Chronotif Test / $env:GITHUB_RUN_NUMBER" --notes 'Fork-only Windows self-hosted test build; app.chronotif.dev installs alongside official Chronotif. Tests top swipe, optional empty-area tap dismissal, and header alignment; all opt-in features default OFF. Built from selected source ref without modifying upstream CI.' --prerelease --latest=false
           if ($LASTEXITCODE -ne 0) { throw "Release creation failed with exit code $LASTEXITCODE" }
