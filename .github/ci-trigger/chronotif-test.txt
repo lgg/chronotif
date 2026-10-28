@@ -1,4 +1,3 @@
-Fork-only one-shot test build request #3
-source_ref: feature/top-edge-swipe-trigger
-Runner: chronotif-runner-ci
-Fix: call GitHub CLI using the installed absolute path.
+Fork-only one-shot CI build request #5
+Source: feature/top-edge-swipe-trigger
+Reason: Robolectric TopSwipePrefsTest now pins SDK 35.
