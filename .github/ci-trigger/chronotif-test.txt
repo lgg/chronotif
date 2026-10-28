@@ -1,4 +1,4 @@
-Fork-only one-shot CI build #6
-source_ref: feature/top-edge-swipe-trigger
-Change: top gesture height max 200 physical pixels. 
-Run unit tests, lint, compile, and publish test prerelease.
+Fork-only CI one-shot for combined panel UX.
+Source ref on push: feature/panel-ux-test
+Includes top swipe 1-200px, optional blank-space tap dismissal, and header/card left alignment.
+Run unit tests + lint + assembleDebug and publish test APK to fork Releases.
