@@ -249,7 +249,7 @@ class NotifList(
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(6), dp(14), dp(2), dp(6))
-            addView(Ui.text(ctx, 13f, pal.onScrimSecondary, bold = true, lines = 1),
+            addView(Ui.text(ctx, 13f, pal.onScrimSecondary, bold = true, lines = 1).apply { Ui.shadow(this) },
                 LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             addView(chip(ctx.getString(R.string.clear)))
         }
@@ -268,7 +268,7 @@ class NotifList(
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(6), dp(6), dp(2), dp(2))
-            addView(Ui.text(ctx, 17f, pal.onScrim, bold = true, lines = 1),
+            addView(Ui.text(ctx, 17f, pal.onScrim, bold = true, lines = 1).apply { Ui.shadow(this) },
                 LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             addView(chip(ctx.getString(R.string.show_less)))
             addView(ImageView(ctx).apply {
@@ -315,8 +315,8 @@ class NotifList(
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             setPadding(0, dp(48), 0, dp(48))
-            addView(Ui.text(ctx, 17f, pal.onScrim, bold = true).apply { setText(title) })
-            addView(Ui.text(ctx, 15f, pal.onScrimSecondary).apply { setText(body) },
+            addView(Ui.text(ctx, 17f, pal.onScrim, bold = true).apply { setText(title); Ui.shadow(this) })
+            addView(Ui.text(ctx, 15f, pal.onScrimSecondary).apply { setText(body); Ui.shadow(this) },
                 Ui.lp(ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(6) })
             if (action != null) {
                 addView(chip(ctx.getString(R.string.open_setup)).apply { setOnClickListener { action() } },
