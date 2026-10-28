@@ -1,4 +1,4 @@
-name: Fork-only: open upstream draft PR
+name: 'Fork-only: open upstream draft PR'
 
 # Deliberately excluded from the upstream feature branch.
 on:
