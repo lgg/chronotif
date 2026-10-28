@@ -35,6 +35,13 @@ class TopSwipePrefsTest {
         assertTrue(Prefs.handleEnabled)
     }
 
+    @Test fun onlyClearDownwardDragsOpenThePanel() {
+        assertTrue(TopSwipeTrigger.isDownwardSwipe(3f, 60f, 50f))
+        assertFalse(TopSwipeTrigger.isDownwardSwipe(3f, 45f, 50f))
+        assertFalse(TopSwipeTrigger.isDownwardSwipe(60f, 55f, 50f))
+        assertFalse(TopSwipeTrigger.isDownwardSwipe(0f, -60f, 50f))
+    }
+
     @Test fun heightIsClampedToPhysicalPixelRange() {
         Prefs.topSwipeHeightPx = 13
         assertEquals(13, Prefs.topSwipeHeightPx)

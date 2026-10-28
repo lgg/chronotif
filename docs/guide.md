@@ -182,6 +182,26 @@ works **alongside** them:
 - Apps that refuse input while *any* overlay is on screen (rare, mostly banking) may complain.
   Disable the edge handle and use the tile instead.
 
+## Testing the optional top-edge trigger in this fork
+
+Use the separately installable **Chronotif Test** APK from a GitHub Actions build.
+It has package ID `app.chronotif.dev` and does **not** replace an official
+`app.chronotif` installation or its saved preferences.
+
+For a test build, open the fork's **Actions → build** workflow and choose
+**Run workflow → feature/top-edge-swipe-trigger** (enable Actions in GitHub for the
+fork first, if it asks). Download the `chronotif-test-apk-*` artifact from the
+completed run, unzip it, and install `app-debug.apk`. You may need to allow
+installation from the browser or file manager used to open the APK.
+
+**Before testing:** turn off the official Chronotif's listener/overlays while
+using Chronotif Test so both apps do not draw competing handles or lock views.
+Grant notification and overlay access separately to the test app; permissions
+are per app. The test build starts with the top gesture **OFF**. Enable it
+under *Panel → Top-edge gesture*, then try heights such as 13 or 24 physical px.
+The system status bar itself still belongs to Android. If a target app loses
+touches near the top, switch off the independent top-edge gesture toggle.
+
 ## Build
 
 Requirements: JDK 17+ and the Android SDK (platform 36).

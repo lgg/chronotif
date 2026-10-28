@@ -27,6 +27,12 @@ import kotlin.math.abs
  * It is intentionally opt-in, adjustable in physical pixels, and hidden in landscape.
  */
 class TopSwipeTrigger(service: Context) {
+    companion object {
+        /** Pure gesture predicate, shared with unit tests. */
+        internal fun isDownwardSwipe(dx: Float, dy: Float, threshold: Float): Boolean =
+            dy >= threshold && dy > abs(dx) * 1.25f
+    }
+
     private val ctx: Context = service.getSystemService(DisplayManager::class.java)
         .getDisplay(Display.DEFAULT_DISPLAY)
         .let { service.createDisplayContext(it) }
@@ -109,7 +115,7 @@ class TopSwipeTrigger(service: Context) {
                 MotionEvent.ACTION_MOVE -> if (tracking && !fired) {
                     val dy = event.rawY - startY
                     val dx = abs(event.rawX - startX)
-                    if (dy >= threshold && dy > dx * 1.25f) {
+                    if (isDownwardSwipe(dx, dy, threshold)) {
                         fired = true
                         tracking = false
                         runCatching {

@@ -21,6 +21,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.window.OnBackInvokedDispatcher
+import app.chronotif.ListenerService
 import app.chronotif.NotifStore
 import app.chronotif.Prefs
 import app.chronotif.R
@@ -136,6 +137,7 @@ class PanelActivity : Activity(), NotifList.Host {
 
     override fun onResume() {
         super.onResume()
+        ListenerService.instance?.setPanelVisible(true)
         resumedAt = System.currentTimeMillis()
         date.text = DateFormat.getDateInstance(DateFormat.FULL).format(Date())
         NotifStore.addListener(render)
@@ -144,6 +146,7 @@ class PanelActivity : Activity(), NotifList.Host {
     }
 
     override fun onPause() {
+        ListenerService.instance?.setPanelVisible(false)
         super.onPause()
         NotifStore.removeListener(render)
         main.removeCallbacks(ticker)

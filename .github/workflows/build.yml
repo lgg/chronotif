@@ -46,7 +46,7 @@ jobs:
             [[ "$tag" == "$prefix"* ]] || { echo "::error::nightly tag does not match versionName $version"; exit 1; }
             nightly="${tag#"$prefix"}"
             publish=true
-          elif [[ "$EVENT" == schedule || "$EVENT" == workflow_dispatch ]]; then
+          elif [[ "$EVENT" == schedule ]]; then
             nightly="$GITHUB_RUN_NUMBER"
             tag="nightly-$version-$nightly"
             publish=true

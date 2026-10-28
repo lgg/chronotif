@@ -35,6 +35,7 @@ class ListenerService : NotificationListenerService() {
 
     private var handle: EdgeHandle? = null
     private var topSwipe: TopSwipeTrigger? = null
+    private var panelVisible = false
     private var receiverRegistered = false
 
     private val screenReceiver = object : BroadcastReceiver() {
@@ -101,6 +102,7 @@ class ListenerService : NotificationListenerService() {
         handle = null
         topSwipe?.hide()
         topSwipe = null
+        panelVisible = false
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification, rankingMap: RankingMap) {
@@ -132,12 +134,18 @@ class ListenerService : NotificationListenerService() {
         }
     }
 
+    /** Avoid intercepting gestures on Chronotif's own full-screen panel. */
+    fun setPanelVisible(visible: Boolean) {
+        panelVisible = visible
+        refreshTopSwipe()
+    }
+
     /** Top trigger is an optional touch overlay, never shown on a locked or sleeping screen. */
     fun refreshTopSwipe() {
         val unlocked = !getSystemService(KeyguardManager::class.java).isKeyguardLocked
         val awake = getSystemService(PowerManager::class.java).isInteractive
         val want = Prefs.enabled && Prefs.topSwipeEnabled &&
-            Settings.canDrawOverlays(this) && unlocked && awake
+            Settings.canDrawOverlays(this) && unlocked && awake && !panelVisible
         if (want) {
             (topSwipe ?: TopSwipeTrigger(this).also { topSwipe = it }).show()
         } else {
