@@ -1,0 +1,4 @@
+One-shot panel UX PR submission by owner.
+Issue #22: lgg:feature/tap-empty-panel-to-dismiss -> nagarete:main (draft).
+Issue #23: lgg:fix/panel-header-card-alignment -> nagarete:main (ready for review).
+Validated combined APK: https://github.com/lgg/chronotif/actions/runs/40783160648
