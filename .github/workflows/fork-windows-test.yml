@@ -23,7 +23,11 @@ permissions:
 jobs:
   test-apk:
     # No PR trigger; restrict executing code on a personal Windows machine to the owner.
-    if: github.repository == 'lgg/chronotif' && ((github.event_name == 'workflow_dispatch' && github.actor == 'lgg') || (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.head_commit.message == 'ci(fork): run Chronotif Test on local runner'))
+    if: >-
+      github.repository == 'lgg/chronotif' &&
+      ((github.event_name == 'workflow_dispatch' && github.actor == 'lgg') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      github.event.head_commit.message == 'ci(fork): run Chronotif Test on local runner'))
     # GitHub runner *name* (chronotif-runner-ci) is not automatically a label.
     # Use built-in labels so a registered Windows x64 runner can accept the job.
     runs-on: [self-hosted, Windows, X64]
