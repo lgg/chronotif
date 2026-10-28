@@ -10,6 +10,12 @@ on:
         type: string
         required: true
         default: feature/top-edge-swipe-trigger
+  # Optional owner-controlled one-shot trigger, for launching without the GitHub UI.
+  # Never runs on ordinary commits, PRs or external forks.
+  push:
+    branches: [main]
+    paths:
+      - '.github/ci-trigger/chronotif-test.txt'
 
 permissions:
   contents: read
@@ -17,7 +23,7 @@ permissions:
 jobs:
   test-apk:
     # No PR trigger; restrict executing code on a personal Windows machine to the owner.
-    if: github.repository == 'lgg/chronotif' && github.actor == 'lgg'
+    if: github.repository == 'lgg/chronotif' && ((github.event_name == 'workflow_dispatch' && github.actor == 'lgg') || (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.head_commit.message == 'ci(fork): run Chronotif Test on local runner'))
     # GitHub runner *name* (chronotif-runner-ci) is not automatically a label.
     # Use built-in labels so a registered Windows x64 runner can accept the job.
     runs-on: [self-hosted, Windows, X64]
@@ -35,7 +41,7 @@ jobs:
       - name: Checkout fork feature branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.source_ref }}
+          ref: ${{ inputs.source_ref || 'feature/top-edge-swipe-trigger' }}
           persist-credentials: false
 
       - name: Verify existing tools (no installations)
