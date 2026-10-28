@@ -35,7 +35,7 @@
     <string name="more_in_stack">%d more</string>
 
     <!-- Setup -->
-    <string name="setup_intro">An iPhone-style, chronological notification panel. New notifications stay prominent; ones you\'ve already seen recede into Earlier. Open the panel with the edge handle or the Quick Settings tile — this screen is only for setup.</string>
+    <string name="setup_intro">An iPhone-style, chronological notification panel. New notifications stay prominent; ones you\'ve already seen recede into Earlier. Open the panel with the edge handle, optional top swipe, or Quick Settings tile — this screen is only for setup.</string>
     <string name="enabled">Chronotif is on</string>
     <string name="enabled_desc">Turn off to hide the edge handle and lock-screen view without changing their settings. You can still open the panel from the Quick Settings tile.</string>
     <string name="setup_permissions">Permissions</string>
@@ -60,6 +60,13 @@
     <string name="side_right">Right</string>
     <string name="handle_position">Position</string>
     <string name="handle_landscape">Hide in landscape</string>
+    <string name="top_swipe_section">Top-edge gesture (experimental)</string>
+    <string name="top_swipe_enabled">Open panel with top-edge swipe</string>
+    <string name="top_swipe_desc">Add an invisible touch strip immediately below the status bar. A downward swipe from the strip opens Chronotif. Disable this separately whenever it interferes with another app.</string>
+    <string name="top_swipe_height">Touch strip height (1–200 physical px)</string>
+    <string name="top_swipe_pixels">px</string>
+    <string name="top_swipe_apply">Apply</string>
+    <string name="top_swipe_warning">Off by default. The strip consumes touches that start within it, including taps, even when the swipe does not open Chronotif. Very small heights may be hard to hit. The system status bar and Quick Settings remain unchanged. Hidden in landscape and while locked.</string>
     <string name="tile_hint">You can also add the “Chronotif” tile to Quick Settings.</string>
     <string name="open_panel">Open panel now</string>
 

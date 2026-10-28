@@ -51,6 +51,16 @@ object Prefs {
         get() = sp.getBoolean("handle_hide_landscape", true)
         set(v) = sp.edit().putBoolean("handle_hide_landscape", v).apply()
 
+    /** Experimental gesture area directly below the status bar, disabled by default. */
+    var topSwipeEnabled: Boolean
+        get() = sp.getBoolean("top_swipe_enabled", false)
+        set(v) = sp.edit().putBoolean("top_swipe_enabled", v).apply()
+
+    /** Physical screen pixels, not dp; clamp even corrupted/restored preferences. */
+    var topSwipeHeightPx: Int
+        get() = sp.getInt("top_swipe_height_px", 16).coerceIn(1, 200)
+        set(v) = sp.edit().putInt("top_swipe_height_px", v.coerceIn(1, 200)).apply()
+
     var lockMode: Int
         get() = sp.getInt("lock_mode", LOCK_WHEN_NEW)
         set(v) = sp.edit().putInt("lock_mode", v).apply()
