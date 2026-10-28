@@ -50,7 +50,13 @@ class TopSwipePrefsTest {
         assertEquals(13, Prefs.topSwipeHeightPx)
         Prefs.topSwipeHeightPx = 0
         assertEquals(1, Prefs.topSwipeHeightPx)
-        Prefs.topSwipeHeightPx = 250
+        Prefs.topSwipeHeightPx = 100
         assertEquals(100, Prefs.topSwipeHeightPx)
+        Prefs.topSwipeHeightPx = 200
+        assertEquals(200, Prefs.topSwipeHeightPx)
+        Prefs.topSwipeHeightPx = 201
+        assertEquals(200, Prefs.topSwipeHeightPx)
+        Prefs.topSwipeHeightPx = 250
+        assertEquals(200, Prefs.topSwipeHeightPx)
     }
 }

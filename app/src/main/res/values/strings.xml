@@ -63,7 +63,7 @@
     <string name="top_swipe_section">Top-edge gesture (experimental)</string>
     <string name="top_swipe_enabled">Open panel with top-edge swipe</string>
     <string name="top_swipe_desc">Add an invisible touch strip immediately below the status bar. A downward swipe from the strip opens Chronotif. Disable this separately whenever it interferes with another app.</string>
-    <string name="top_swipe_height">Touch strip height (1–100 physical px)</string>
+    <string name="top_swipe_height">Touch strip height (1–200 physical px)</string>
     <string name="top_swipe_pixels">px</string>
     <string name="top_swipe_apply">Apply</string>
     <string name="top_swipe_warning">Off by default. The strip consumes touches that start within it, including taps, even when the swipe does not open Chronotif. Very small heights may be hard to hit. The system status bar and Quick Settings remain unchanged. Hidden in landscape and while locked.</string>

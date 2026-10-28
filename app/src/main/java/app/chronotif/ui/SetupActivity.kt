@@ -156,7 +156,7 @@ class SetupActivity : Activity() {
         }
         body.addView(text(getString(R.string.top_swipe_height), 15f), gap(12))
         val heightSlider = SeekBar(this).apply {
-            max = 99 // 1–100 physical pixels, not density-independent dp.
+            max = 199 // 1–200 physical pixels, not density-independent dp.
             progress = Prefs.topSwipeHeightPx - 1
         }
         val heightInput = EditText(this).apply {
@@ -169,7 +169,7 @@ class SetupActivity : Activity() {
             contentDescription = getString(R.string.top_swipe_height)
         }
         fun setHeight(value: Int) {
-            val px = value.coerceIn(1, 100)
+            val px = value.coerceIn(1, 200)
             Prefs.topSwipeHeightPx = px
             heightSlider.progress = px - 1
             heightInput.setText(px.toString())

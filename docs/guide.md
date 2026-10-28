@@ -10,7 +10,7 @@ Setup help, notification behaviour, privacy rules, and development details.
 |---|---|---|
 | Notification listener | Mirrors active notifications in memory; opens/dismisses/acts on them | Event-driven, no polling |
 | Edge handle | A slim pill on the screen edge. Tap or swipe it to open the panel. Tinted with your accent colour while something is NEW | One tiny overlay window, no timers |
-| Top-edge swipe (optional, experimental) | Invisible gesture strip just below the status bar. Downward swipe opens the panel. Height 1–100 physical px, independent switch | One small overlay while enabled; no polling |
+| Top-edge swipe (optional, experimental) | Invisible gesture strip just below the status bar. Downward swipe opens the panel. Height 1–200 physical px, independent switch | One small overlay while enabled; no polling |
 | Quick Settings tile | Another way into the panel; shows "N new" | Only when the shade is open |
 | Panel | The shade-like screen: blurred backdrop, calls and media, NEW / EARLIER, collapsed Running | Exists only while open |
 | Lock-screen view | Shown over the locked keyguard when the screen turns on | Started only on screen-on |
@@ -147,7 +147,7 @@ Optionally, lock Chronotif in Recents so the system doesn't kill it.
 ## Using it
 
 - **Open the panel**: tap the edge handle, or swipe it down/inward; use the optional top-edge downward swipe (enable under *Settings → Top-edge gesture*); or use the QS tile.
-- **Top-edge gesture**: disabled by default. Set the touch strip height from 1 to 100 **physical pixels** with a slider or exact numeric entry. Changes apply immediately. Turn off the switch independently if it blocks controls in an app. The strip consumes touches that begin within it, including taps. It is hidden in landscape and while the device is locked; the real status bar and system shade are unchanged.
+- **Top-edge gesture**: disabled by default. Set the touch strip height from 1 to 200 **physical pixels** with a slider or exact numeric entry. Changes apply immediately. Turn off the switch independently if it blocks controls in an app. The strip consumes touches that begin within it, including taps. It is hidden in landscape and while the device is locked; the real status bar and system shade are unchanged.
 - **Close**: back, tap empty space, or fling up at the end of the list.
 - **Open a notification**: tap it.
 - **Dismiss**: swipe sideways. Swiping a collapsed stack dismisses the whole stack.

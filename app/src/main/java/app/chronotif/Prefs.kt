@@ -58,8 +58,8 @@ object Prefs {
 
     /** Physical screen pixels, not dp; clamp even corrupted/restored preferences. */
     var topSwipeHeightPx: Int
-        get() = sp.getInt("top_swipe_height_px", 16).coerceIn(1, 100)
-        set(v) = sp.edit().putInt("top_swipe_height_px", v.coerceIn(1, 100)).apply()
+        get() = sp.getInt("top_swipe_height_px", 16).coerceIn(1, 200)
+        set(v) = sp.edit().putInt("top_swipe_height_px", v.coerceIn(1, 200)).apply()
 
     var lockMode: Int
         get() = sp.getInt("lock_mode", LOCK_WHEN_NEW)
