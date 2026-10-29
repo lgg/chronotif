@@ -138,7 +138,10 @@ buttons jump to the right screens:
 - **Other permissions → Show on Lock screen**: required for the lock-screen view.
 - **Other permissions → Display pop-up windows while running in the background**: required for
   the handle and lock-screen view to open.
-- **Autostart**: on, so notification access survives reboots.
+- **Autostart**: on. Required: without it, MIUI blocks Chronotif from reconnecting after you
+  clear recent apps, after a reboot, or whenever it closes Chronotif in the background.
+  Notification access stays granted, but Chronotif stops receiving notifications until you turn
+  access off and on again. Setup shows a warning when this happens.
 - **Battery saver → No restrictions** for Chronotif (App info → Battery saver).
 
 Optionally, lock Chronotif in Recents so the system doesn't kill it.

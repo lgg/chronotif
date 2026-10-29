@@ -46,10 +46,13 @@
     <string name="perm_xiaomi">Xiaomi permissions</string>
     <string name="perm_xiaomi_desc">Enable “Show on Lock screen” and “Display pop-up windows while running in the background”.</string>
     <string name="perm_autostart">Xiaomi autostart</string>
-    <string name="perm_autostart_desc">Keeps notification access alive after reboots.</string>
+    <string name="perm_autostart_desc">Required. Without it, MIUI keeps Chronotif disconnected after you clear recent apps, after a reboot, or whenever it closes Chronotif in the background.</string>
+    <string name="perm_disconnected">Notification access is on, but Chronotif isn\'t connected. Tap Reconnect, then turn notification access off and on.</string>
+    <string name="perm_disconnected_xiaomi">Notification access is on, but Chronotif isn\'t connected. Turn on Xiaomi autostart below, then tap Reconnect and turn notification access off and on once.</string>
     <string name="perm_restricted_hint">Greyed-out toggle? Android blocks this for sideloaded apps: open App info → ⋮ → “Allow restricted settings” (on HyperOS, the switch under Advanced settings), then try again.</string>
     <string name="granted">Granted</string>
     <string name="grant">Grant</string>
+    <string name="reconnect">Reconnect</string>
     <string name="open">Open</string>
 
     <string name="setup_panel">Panel</string>
