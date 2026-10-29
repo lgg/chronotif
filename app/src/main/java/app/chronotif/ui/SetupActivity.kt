@@ -42,6 +42,17 @@ class SetupActivity : Activity() {
     private val isXiaomi = Build.MANUFACTURER.equals("xiaomi", true) ||
         Build.BRAND.lowercase() in setOf("xiaomi", "redmi", "poco")
 
+    private companion object {
+        /** A listener the system is still binding looks disconnected for a moment after launch. */
+        const val SETTLE_MS = 2000L
+    }
+
+    private var settled = false
+    private val settle = Runnable {
+        settled = true
+        refreshers.forEach { it() }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Ui.edgeToEdge(window)
@@ -63,10 +74,13 @@ class SetupActivity : Activity() {
         super.onResume()
         refreshers.forEach { it() }
         Updater.foreground = true
+        body.postDelayed(settle, SETTLE_MS)
     }
 
     override fun onPause() {
         super.onPause()
+        body.removeCallbacks(settle)
+        settled = false
         Updater.foreground = false
     }
 
@@ -82,7 +96,15 @@ class SetupActivity : Activity() {
 
         section(R.string.setup_permissions)
         permission(R.string.perm_listener, R.string.perm_listener_desc,
-            granted = { ListenerService.isEnabled(this) }) { openListenerSettings() }
+            granted = { ListenerService.isEnabled(this) }, broken = { disconnected() }) { openListenerSettings() }
+        // Granted but unbound: the system can't restart the listener (MIUI without autostart),
+        // and only toggling access off and on reconnects it.
+        val disconnectedHint = text(
+            getString(if (isXiaomi) R.string.perm_disconnected_xiaomi else R.string.perm_disconnected),
+            13f, secondary = true,
+        )
+        body.addView(disconnectedHint, gap(4))
+        refreshers += { disconnectedHint.visibility = if (disconnected()) View.VISIBLE else View.GONE }
         val restricted = text(getString(R.string.perm_restricted_hint), 13f, secondary = true)
         body.addView(restricted, gap(4))
         refreshers += {
@@ -265,7 +287,15 @@ class SetupActivity : Activity() {
         }, gap(28))
     }
 
-    private fun permission(title: Int, desc: Int, granted: (() -> Boolean)?, onClick: () -> Unit): View {
+    private fun disconnected() = settled && ListenerService.isEnabled(this) && ListenerService.instance == null
+
+    private fun permission(
+        title: Int,
+        desc: Int,
+        granted: (() -> Boolean)?,
+        broken: () -> Boolean = { false },
+        onClick: () -> Unit,
+    ): View {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -285,7 +315,13 @@ class SetupActivity : Activity() {
             } else {
                 // Stays tappable when granted: ROMs can drop a grant (or the binding) behind
                 // our back, and the settings screen is the only way to repair it.
-                button.setText(if (granted()) R.string.granted else R.string.grant)
+                button.setText(
+                    when {
+                        !granted() -> R.string.grant
+                        broken() -> R.string.reconnect
+                        else -> R.string.granted
+                    },
+                )
             }
         }
         refresh()
