@@ -84,7 +84,8 @@ class PanelActivity : Activity(), NotifList.Host {
         date = Ui.text(this, 15f, pal.onScrimSecondary, bold = true, lines = 1)
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(6), dp(8), dp(6), dp(4))
+            // Match the horizontal inset of notification and media cards.
+            setPadding(dp(12), dp(8), dp(12), dp(4))
             addView(Ui.text(context, 30f, pal.onScrim, bold = true, lines = 1).apply {
                 setText(R.string.tile_label)
             })
