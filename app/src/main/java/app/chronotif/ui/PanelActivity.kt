@@ -43,13 +43,12 @@ class PanelActivity : Activity(), NotifList.Host {
 
         /** Only an unmoving tap that begins and ends below the list may dismiss it. */
         internal fun isEmptySpaceTap(
-            enabled: Boolean,
             startedInBlank: Boolean,
             endedInBlank: Boolean,
             dx: Float,
             dy: Float,
             slop: Float,
-        ): Boolean = enabled && startedInBlank && endedInBlank &&
+        ): Boolean = startedInBlank && endedInBlank &&
             abs(dx) <= slop && abs(dy) <= slop
     }
 
@@ -129,8 +128,7 @@ class PanelActivity : Activity(), NotifList.Host {
                 MotionEvent.ACTION_DOWN -> {
                     blankDownX = ev.x
                     blankDownY = ev.y
-                    blankTapCandidate = Prefs.tapEmptySpaceToClose &&
-                        ev.y > column.bottom - scroll.scrollY
+                    blankTapCandidate = ev.y > column.bottom - scroll.scrollY
                 }
                 MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_CANCEL ->
                     blankTapCandidate = false
@@ -140,7 +138,6 @@ class PanelActivity : Activity(), NotifList.Host {
                 }
                 MotionEvent.ACTION_UP -> {
                     val shouldClose = isEmptySpaceTap(
-                        Prefs.tapEmptySpaceToClose,
                         blankTapCandidate,
                         ev.y > column.bottom - scroll.scrollY,
                         ev.x - blankDownX,
