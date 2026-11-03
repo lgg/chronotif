@@ -1,0 +1,3 @@
+Submit upstream PR for issue #39 from lgg:feat/media-dismiss-upstream, exact commit ef7355ae9e2d79218a258c2daed231af0c25c5ba.
+Use the existing personal GitHub CLI login on the trusted local Windows runner.
+Do not upload keys, tokens or logs containing user credentials.
