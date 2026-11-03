@@ -44,7 +44,7 @@ Chronotif's standing surfaces (the edge handle, the status-bar swipe and the loc
 _Avoid_: Disabled, Paused
 
 **Media player**:
-A playback control for an app that is playing or paused, shown above everything else. It stays while paused, until the app removes it, and never counts as New.
+A playback control for an app that is playing or paused, shown above everything else and never counted as New. A paused player remains until the app removes it or the user swipes it away. For ongoing media, swiping hides Chronotif's card only until the session resumes; it does not forcibly stop the app or remove the stock shade's player.
 _Avoid_: Now playing card
 
 **Running**:

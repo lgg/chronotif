@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Looper
 import android.os.Process
+import android.media.session.PlaybackState
 import android.service.notification.NotificationListenerService.RankingMap
 import android.service.notification.NotificationListenerService.Ranking
 import android.service.notification.StatusBarNotification
@@ -307,6 +308,27 @@ class NotificationBehaviorTest {
         val s = Attention.sections(NotifStore.visible(), lastCheck = 0)
         assertEquals(listOf(paused.key), s.media.map { it.key })
         assertTrue(s.earlier.isEmpty() && s.fresh.isEmpty())
+    }
+
+    @Test
+    fun pausedOngoingMediaCanBeSwipedButActiveMediaCannot() {
+        val player = post(Notification.Builder(context, "media")
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setContentTitle("Song")
+            .setStyle(Notification.MediaStyle())
+            .setOngoing(true)
+            .build(), 2000, id = 12)
+        assertEquals(Kind.MEDIA, player.kind)
+        assertFalse("Ongoing notifications are not clearable", player.clearable)
+
+        fun playback(state: Int) = PlaybackState.Builder()
+            .setState(state, 0L, 1f).build()
+
+        assertTrue(MediaDismiss.canSwipe(player, playback(PlaybackState.STATE_PAUSED)))
+        assertTrue(MediaDismiss.canSwipe(player, playback(PlaybackState.STATE_STOPPED)))
+        assertFalse(MediaDismiss.canSwipe(player, playback(PlaybackState.STATE_PLAYING)))
+        assertFalse(MediaDismiss.canSwipe(player, playback(PlaybackState.STATE_BUFFERING)))
+        assertFalse(MediaDismiss.canSwipe(player, playback(PlaybackState.STATE_CONNECTING)))
     }
 
     @Test
