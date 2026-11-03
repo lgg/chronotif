@@ -406,21 +406,19 @@ class NotifList(
             dismissAll(listOf(e))
             return
         }
-        // The media notification may be ongoing even while its session is paused.
-        // Native cancellation is used when allowed; otherwise MediaDismiss watches the
-        // paused session and hides this card only until playback resumes.
-        if (MediaDismiss.dismiss(ctx, e)) {
-            if (e.clearable) {
-                pendingDismiss += e.key
-                container.postDelayed({
-                    pendingDismiss -= e.key
-                    if (NotifStore.get(e.key) != null) render()
-                }, 900)
-            }
-        } else {
-            // Playback may have resumed during the swipe: restore the card.
+        // Recheck the current session before attempting the system dismissal:
+        // playback may have resumed after the swipe began.
+        if (!MediaDismiss.dismiss(ctx, e)) {
             render()
+            return
         }
+        // The listener must confirm removal. If Android refuses to cancel the
+        // notification, restore the card instead of leaving a phantom dismissal.
+        pendingDismiss += e.key
+        container.postDelayed({
+            pendingDismiss -= e.key
+            if (NotifStore.get(e.key) != null) render()
+        }, 900)
     }
 
     /** The notification as it is now: apps repost with fresh buttons, and an old one may no longer work. */

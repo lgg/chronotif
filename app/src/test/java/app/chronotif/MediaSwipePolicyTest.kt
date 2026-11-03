@@ -9,20 +9,16 @@ import org.junit.Test
 
 class MediaSwipePolicyTest {
     @Test
-    fun pausedAndStoppedSessionsCanBeDismissedEvenIfNotificationIsOngoing() {
+    fun onlyKnownInactiveStatesAreDismissible() {
         for (state in listOf(
             PlaybackState.STATE_PAUSED,
             PlaybackState.STATE_STOPPED,
-            PlaybackState.STATE_NONE,
             PlaybackState.STATE_ERROR,
-        )) {
-            assertTrue(MediaSwipePolicy.canDismiss(state, clearable = false))
-            assertTrue(MediaSwipePolicy.canDismiss(state, clearable = true))
-        }
+        )) assertTrue(MediaSwipePolicy.isInactive(state))
     }
 
     @Test
-    fun activeAndTransitioningSessionsCannotBeDismissed() {
+    fun playingAndTransitioningStatesStayProtected() {
         for (state in listOf(
             PlaybackState.STATE_PLAYING,
             PlaybackState.STATE_BUFFERING,
@@ -32,16 +28,12 @@ class MediaSwipePolicyTest {
             PlaybackState.STATE_SKIPPING_TO_PREVIOUS,
             PlaybackState.STATE_SKIPPING_TO_NEXT,
             PlaybackState.STATE_SKIPPING_TO_QUEUE_ITEM,
-        )) {
-            assertFalse(MediaSwipePolicy.canDismiss(state, clearable = false))
-            assertFalse(MediaSwipePolicy.canDismiss(state, clearable = true))
-        }
+        )) assertFalse(MediaSwipePolicy.isInactive(state))
     }
 
     @Test
-    fun missingSessionKeepsExistingClearableNotificationFallback() {
-        assertTrue(MediaSwipePolicy.canDismiss(state = null, clearable = true))
-        assertFalse(MediaSwipePolicy.canDismiss(state = null, clearable = false))
+    fun missingAndUnknownStatesAreNotAssumedInactive() {
         assertFalse(MediaSwipePolicy.isInactive(null))
+        assertFalse(MediaSwipePolicy.isInactive(PlaybackState.STATE_NONE))
     }
 }
