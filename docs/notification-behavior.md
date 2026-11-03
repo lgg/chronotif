@@ -53,6 +53,18 @@ Tapping the Preview's image opens a full-screen viewer, still without unlocking.
 
 Chronotif reads Attachments through the sending app's content links, which Android lets notification listeners read. Many apps send a shrunk preview rather than the original, so a saved image can be lower quality than the one in the chat. An Attachment that can't be read just isn't shown.
 
+## Panel header appearance
+
+Settings → Panel → **Header appearance** provides separate controls for the Chronotif
+title, large clock, full/short weekday and month names, and whether the date shows a year.
+The panel's title and date retain their existing appearance by default; the large clock is
+off by default. The date follows the device's locale and calendar order. When the large clock
+is enabled it uses Android's current 12/24-hour time preference; a manual 12/24-hour override
+is available if the system option is turned off. The clock updates while the panel is visible
+using the panel's existing minute tick, including when the date changes at midnight.
+No live preview or additional background component is required. These settings affect only
+the notification panel, not the separate lock-screen appearance or notification cards.
+
 ## Calls, media and Running
 
 Agreed in the October 2026 interview about always-running services crowding the top of the panel.

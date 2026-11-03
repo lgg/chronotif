@@ -185,6 +185,11 @@ class SetupActivity : Activity() {
             Prefs.handleHideLandscape = it
             applyHandle()
         }
+        body.addView(Button(this).apply {
+            setText(R.string.header_settings_title)
+            setOnClickListener { startActivity(Intent(this@SetupActivity, HeaderSettingsActivity::class.java)) }
+        }, gap(12).apply { width = -1 })
+        body.addView(text(getString(R.string.header_settings_desc), 13f, secondary = true), gap(4))
         body.addView(text(getString(R.string.tile_hint), 13f, secondary = true), gap(12))
         val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         buttons.addView(Button(this).apply {

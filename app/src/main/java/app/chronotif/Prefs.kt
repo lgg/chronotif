@@ -64,6 +64,36 @@ object Prefs {
         get() = sp.getBoolean("lock_hide_content", false)
         set(v) = sp.edit().putBoolean("lock_hide_content", v).apply()
 
+    /** Panel header appearance. Keep the old title and full date unless customized. */
+    var headerShowTitle: Boolean
+        get() = sp.getBoolean("header_show_title", true)
+        set(v) = sp.edit().putBoolean("header_show_title", v).apply()
+
+    var headerShowClock: Boolean
+        get() = sp.getBoolean("header_show_clock", false)
+        set(v) = sp.edit().putBoolean("header_show_clock", v).apply()
+
+    var headerFullWeekday: Boolean
+        get() = sp.getBoolean("header_full_weekday", true)
+        set(v) = sp.edit().putBoolean("header_full_weekday", v).apply()
+
+    var headerFullMonth: Boolean
+        get() = sp.getBoolean("header_full_month", true)
+        set(v) = sp.edit().putBoolean("header_full_month", v).apply()
+
+    var headerShowYear: Boolean
+        get() = sp.getBoolean("header_show_year", true)
+        set(v) = sp.edit().putBoolean("header_show_year", v).apply()
+
+    var headerUseSystemTimeFormat: Boolean
+        get() = sp.getBoolean("header_use_system_time_format", true)
+        set(v) = sp.edit().putBoolean("header_use_system_time_format", v).apply()
+
+    /** Only used when [headerUseSystemTimeFormat] is off. */
+    var headerOverride24Hour: Boolean
+        get() = sp.getBoolean("header_override_24_hour", true)
+        set(v) = sp.edit().putBoolean("header_override_24_hour", v).apply()
+
     /** Opt-in: check GitHub Releases daily and install newer versions. */
     var autoUpdate: Boolean
         get() = sp.getBoolean("auto_update", false)

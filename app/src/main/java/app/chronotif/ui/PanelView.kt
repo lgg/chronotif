@@ -22,8 +22,6 @@ import android.widget.TextView
 import app.chronotif.NotifStore
 import app.chronotif.Prefs
 import app.chronotif.R
-import java.text.DateFormat
-import java.util.Date
 import kotlin.math.abs
 
 /**
@@ -61,6 +59,8 @@ class PanelView(
     private val scrim: View
     private val scroll: ScrollView
     private val content: LinearLayout
+    private val title: TextView
+    private val clock: TextView
     private val date: TextView
     private val list: NotifList
     private val main = Handler(Looper.getMainLooper())
@@ -74,6 +74,7 @@ class PanelView(
     private val render: () -> Unit = { list.render() }
     private val ticker = object : Runnable {
         override fun run() {
+            refreshHeader()
             list.render()
             main.postDelayed(this, 60_000)
         }
@@ -92,14 +93,20 @@ class PanelView(
             setPadding(dp(12), 0, dp(12), dp(24))
         }
         val pal = Palette(context)
+        title = Ui.text(context, 30f, pal.onScrim, bold = true, lines = 1).apply {
+            setText(R.string.tile_label)
+        }
+        clock = Ui.text(context, 76f, pal.onScrim, lines = 1).apply {
+            typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, 500, false)
+            fontFeatureSettings = "tnum"
+        }
         date = Ui.text(context, 15f, pal.onScrimSecondary, bold = true, lines = 1)
         val header = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             // Match the horizontal inset of notification and media cards.
             setPadding(dp(12), dp(8), dp(12), dp(4))
-            addView(Ui.text(context, 30f, pal.onScrim, bold = true, lines = 1).apply {
-                setText(R.string.tile_label)
-            })
+            addView(title)
+            addView(clock)
             addView(date, Ui.lp().apply { topMargin = dp(2) })
         }
         val column = LinearLayout(context).apply {
@@ -176,14 +183,23 @@ class PanelView(
         list.render()
     }
 
+    /** Apply saved settings and the current device time, even when the date changes at midnight. */
+    private fun refreshHeader() {
+        title.visibility = if (Prefs.headerShowTitle) View.VISIBLE else View.GONE
+        clock.visibility = if (Prefs.headerShowClock) View.VISIBLE else View.GONE
+        if (Prefs.headerShowClock) clock.text = PanelHeaderFormat.time(context)
+        date.text = PanelHeaderFormat.date()
+    }
+
     /** The panel is on screen: start following notifications. */
     fun shown() {
         shownAt = System.currentTimeMillis()
-        date.text = DateFormat.getDateInstance(DateFormat.FULL).format(Date())
+        refreshHeader()
         NotifStore.addListener(render)
         list.render()
         main.removeCallbacks(ticker)
-        main.postDelayed(ticker, 60_000)
+        // Reuse the existing minute tick; no new worker, alarm or background polling.
+        main.postDelayed(ticker, 60_000L - (System.currentTimeMillis() % 60_000L))
     }
 
     /** The panel left the screen, by any route: stop following, and record the check. */

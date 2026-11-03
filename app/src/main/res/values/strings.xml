@@ -80,6 +80,20 @@
     <string name="tile_hint">You can also add the “Chronotif” tile to Quick Settings.</string>
     <string name="open_panel">Open panel now</string>
 
+    <!-- Panel header subpage -->
+    <string name="header_settings_title">Header appearance</string>
+    <string name="header_settings_desc">Customize the panel title, clock and date.</string>
+    <string name="header_show_title">Show Chronotif title</string>
+    <string name="header_show_clock">Show large clock</string>
+    <string name="header_full_weekday">Use full weekday name</string>
+    <string name="header_full_month">Use full month name</string>
+    <string name="header_show_year">Show year</string>
+    <string name="header_use_system_time">Use system time format</string>
+    <string name="header_24_hour">24-hour format</string>
+    <string name="header_clock_desc">The large clock appears above the date, in the panel header.</string>
+    <string name="header_system_time_desc">Follows Android's 12-hour or 24-hour setting. Disable for a manual override.</string>
+    <string name="header_back">Back</string>
+
     <string name="setup_lock">Lock screen</string>
     <string name="lock_mode">Show on lock screen</string>
     <string name="lock_off">Off</string>

@@ -38,6 +38,10 @@
         </activity>
 
         <activity
+            android:name=".ui.HeaderSettingsActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ui.PanelActivity"
             android:excludeFromRecents="true"
             android:exported="false"
