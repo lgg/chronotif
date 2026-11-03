@@ -17,6 +17,11 @@ class MediaSwipePolicyTest {
         assertFalse(MediaSwipePolicy.canAttempt(PlaybackState.STATE_PLAYING, false, true))
         assertFalse(MediaSwipePolicy.canAttempt(PlaybackState.STATE_BUFFERING, false, true))
         assertFalse(MediaSwipePolicy.canAttempt(null, false, true))
+        assertTrue(MediaSwipePolicy.canAttempt(null, false, true, hasPlayAction = true))
+        assertTrue(MediaSwipePolicy.canAttempt(PlaybackState.STATE_NONE, false, true, hasPlayAction = true))
+        assertFalse(MediaSwipePolicy.canAttempt(PlaybackState.STATE_PLAYING, false, true, hasPlayAction = true))
+        assertFalse(MediaSwipePolicy.canAttempt(PlaybackState.STATE_BUFFERING, false, true, hasPlayAction = true))
+        assertFalse(MediaSwipePolicy.canAttempt(null, false, false, hasPlayAction = true))
     }
 
     @Test

@@ -370,6 +370,64 @@ class NotificationBehaviorTest {
         assertFalse(MediaDismiss.canSwipe(protectedWithDelete, playing))
         assertFalse(MediaDismiss.canSwipe(protectedWithDelete, buffering))
         assertFalse(MediaDismiss.canSwipe(protectedWithDelete, null))
+
+        // Apple Music leaves a Play action on a stale NO_CLEAR media notification
+        // even when a MediaSession controller is no longer available.
+        val play = Notification.Action.Builder(null, "Play", pendingDelete).build()
+        val pause = Notification.Action.Builder(null, "Pause", pendingDelete).build()
+        val stalePaused = post(Notification.Builder(context, "media")
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setContentTitle("Paused Apple Music")
+            .setStyle(Notification.MediaStyle())
+            .setDeleteIntent(pendingDelete)
+            .addAction(play)
+            .build().apply { flags = flags or Notification.FLAG_NO_CLEAR }, 2000, id = 16)
+        assertTrue(MediaDismiss.canSwipe(stalePaused, null))
+        assertFalse(MediaDismiss.canSwipe(stalePaused, playing))
+        val playingActions = post(Notification.Builder(context, "media")
+            .setSmallIcon(android.R.drawable.ic_media_pause)
+            .setContentTitle("Playing Apple Music")
+            .setStyle(Notification.MediaStyle())
+            .setDeleteIntent(pendingDelete)
+            .addAction(pause)
+            .build().apply { flags = flags or Notification.FLAG_NO_CLEAR }, 2000, id = 17)
+        assertFalse(MediaDismiss.canSwipe(playingActions, null))
+    }
+
+    @Test
+    fun inactiveMediaCanInterceptSwipeStartingOnItsChildren() {
+        val pending = android.app.PendingIntent.getBroadcast(
+            context, 408, Intent("app.chronotif.test.MEDIA_DISMISS"),
+            android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        post(Notification.Builder(context, "media")
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setContentTitle("Paused player")
+            .setStyle(Notification.MediaStyle())
+            .setDeleteIntent(pending)
+            .addAction(Notification.Action.Builder(null, "Play", pending).build())
+            .build().apply { flags = flags or Notification.FLAG_NO_CLEAR }, 2000, id = 18)
+
+        withPanelList { list, container ->
+            list.render()
+            val card = views(container).filterIsInstance<MediaPlayerView>().single()
+            val width = View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY)
+            val height = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            card.measure(width, height)
+            card.layout(0, 0, 400, card.measuredHeight)
+            fun event(action: Int, x: Float, y: Float) =
+                android.view.MotionEvent.obtain(0, 25, action, x, y, 0)
+            val down = event(android.view.MotionEvent.ACTION_DOWN, 40f, 32f)
+            val move = event(android.view.MotionEvent.ACTION_MOVE, 180f, 34f)
+            try {
+                assertFalse(card.onInterceptTouchEvent(down))
+                assertTrue("Horizontal gesture over media content must be intercepted",
+                    card.onInterceptTouchEvent(move))
+            } finally {
+                down.recycle()
+                move.recycle()
+            }
+        }
     }
 
     @Test

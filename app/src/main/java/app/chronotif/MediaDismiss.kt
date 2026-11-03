@@ -8,6 +8,7 @@ import android.media.session.MediaController
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.os.Build
+import java.util.Locale
 import app.chronotif.core.Kind
 
 /**
@@ -26,7 +27,9 @@ object MediaDismiss {
     /** Only dismiss after a user gesture and a confirmed inactive media state. */
     fun canSwipe(e: Entry, playback: PlaybackState?): Boolean =
         e.kind == Kind.MEDIA &&
-            MediaSwipePolicy.canAttempt(playback?.state, e.clearable, e.n.deleteIntent != null)
+            MediaSwipePolicy.canAttempt(
+                playback?.state, e.clearable, e.n.deleteIntent != null, hasPlayAction(e.n)
+            )
 
     /**
      * Playback may have resumed while the swipe animated. Look up the current
@@ -38,14 +41,19 @@ object MediaDismiss {
         val live = NotifStore.get(entry.key) ?: return false
         if (live.kind != Kind.MEDIA) return false
 
-        val token = mediaToken(live.n) ?: return false
+        val token = mediaToken(live.n)
         // A notification key may be reused when a different media session arrives.
         if (mediaToken(entry.n) != token) return false
-        val controller = runCatching {
-            MediaController(context.applicationContext, token)
-        }.getOrNull() ?: return false
+        val state = token?.let {
+            runCatching {
+                MediaController(context.applicationContext, it).playbackState?.state
+            }.getOrNull()
+        }
+        // A stale media notification can outlive its session. A currently supplied
+        // "Play" action is the only fallback if the session state is unavailable.
+        // A known PLAYING / BUFFERING / CONNECTING state always wins over it.
         if (!MediaSwipePolicy.canAttempt(
-                controller.playbackState?.state, live.clearable, live.n.deleteIntent != null
+                state, live.clearable, live.n.deleteIntent != null, hasPlayAction(live.n)
             )
         ) return false
 
@@ -68,6 +76,16 @@ object MediaDismiss {
         }
     }
 
+    /** A strict, current Play action from the media app indicates an inactive player
+     * when its MediaSession no longer reports a state (e.g. after closing Apple Music).
+     * Never infer inactivity from an absent session alone. */
+    private fun hasPlayAction(n: Notification): Boolean {
+        val titles = n.actions.orEmpty().map { it.title.toString().trim().lowercase(Locale.ROOT) }
+        val play = setOf("play", "resume", "воспроизвести", "продолжить")
+        val pause = setOf("pause", "приостановить", "пауза")
+        return titles.any { it in play } && titles.none { it in pause }
+    }
+
     private fun mediaToken(notification: Notification): MediaSession.Token? =
         if (Build.VERSION.SDK_INT >= 33) {
             notification.extras.getParcelable(Notification.EXTRA_MEDIA_SESSION, MediaSession.Token::class.java)
@@ -79,8 +97,16 @@ object MediaDismiss {
 
 /** Unknown or transitional states are never considered safe to dismiss. */
 internal object MediaSwipePolicy {
-    fun canAttempt(state: Int?, clearable: Boolean, hasDeleteIntent: Boolean): Boolean =
-        isInactive(state) && (clearable || hasDeleteIntent)
+    fun canAttempt(
+        state: Int?, clearable: Boolean, hasDeleteIntent: Boolean, hasPlayAction: Boolean = false,
+    ): Boolean =
+        (clearable || hasDeleteIntent) && when (state) {
+            PlaybackState.STATE_PAUSED,
+            PlaybackState.STATE_STOPPED,
+            PlaybackState.STATE_ERROR -> true
+            null, PlaybackState.STATE_NONE -> hasPlayAction
+            else -> false
+        }
 
     fun isInactive(state: Int?): Boolean = when (state) {
         PlaybackState.STATE_PAUSED,
