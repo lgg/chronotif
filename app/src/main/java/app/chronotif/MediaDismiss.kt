@@ -24,10 +24,10 @@ import app.chronotif.core.Kind
  * third-party player, and it never tries to dismiss actively playing media.
  */
 object MediaDismiss {
-    private data class Hidden(
+    private class Hidden(
         val token: MediaSession.Token,
-        val controller: MediaController,
-        val callback: MediaController.Callback,
+        var controller: MediaController?,
+        var callback: MediaController.Callback?,
     )
 
     private val hidden = HashMap<String, Hidden>()
@@ -67,7 +67,12 @@ object MediaDismiss {
                 if (!MediaSwipePolicy.isInactive(state?.state)) forget(key)
             }
 
-            override fun onSessionDestroyed() = forget(key)
+            override fun onSessionDestroyed() {
+                // The session may die before Android removes its stale notification.
+                // Keep this card dismissed until a *new* session is posted, but release
+                // the dead controller so we don't keep a callback or player alive.
+                stopWatching(key)
+            }
         }
 
         hidden[key] = Hidden(token, controller, callback)
@@ -97,8 +102,9 @@ object MediaDismiss {
     /** A repost from an old session stays hidden; new sessions and resumed ones reappear. */
     fun onPosted(e: Entry) {
         val record = hidden[e.key] ?: return
+        val state = record.controller?.playbackState?.state
         if (mediaToken(e.n) != record.token ||
-            !MediaSwipePolicy.isInactive(record.controller.playbackState?.state)
+            (state != null && !MediaSwipePolicy.isInactive(state))
         ) forget(e.key)
     }
 
@@ -110,9 +116,21 @@ object MediaDismiss {
     }
 
     private fun forget(key: String) {
-        val old = hidden.remove(key) ?: return
-        runCatching { old.controller.unregisterCallback(old.callback) }
+        if (hidden[key] == null) return
+        stopWatching(key)
+        hidden.remove(key)
         NotifStore.changed()
+    }
+
+    private fun stopWatching(key: String) {
+        val record = hidden[key] ?: return
+        val ctl = record.controller
+        val callback = record.callback
+        record.controller = null
+        record.callback = null
+        if (ctl != null && callback != null) {
+            runCatching { ctl.unregisterCallback(callback) }
+        }
     }
 
     private fun mediaToken(notification: Notification?): MediaSession.Token? {
