@@ -1,0 +1,4 @@
+Build Chronotif Test as an in-place update of app.chronotif.dev.
+Source branch: experiment/media-delete-intent
+Reference signing certificate: Chronotif Test / 7 (chronotif-test-40783160648-1)
+Build requirements: same Windows runner, higher versionCode, identical signing certificate, publish APK to Releases only after checks pass.
