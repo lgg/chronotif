@@ -45,7 +45,7 @@ object MediaDismiss {
         if (live.kind != Kind.MEDIA) return false
 
         val token = mediaToken(live.n)
-        val controller = token?.let { runCatching { MediaController(context, it) }.getOrNull() }
+        val controller = token?.let { runCatching { MediaController(context.applicationContext, it) }.getOrNull() }
         val state = controller?.playbackState
         if (!canSwipe(live, state)) return false
 
@@ -64,14 +64,14 @@ object MediaDismiss {
         val callback = object : MediaController.Callback() {
             override fun onPlaybackStateChanged(state: PlaybackState?) {
                 // Null means state is unknown; err toward showing, never hiding active playback.
-                if (!MediaSwipePolicy.isInactive(state?.state)) forget(key)
+                if (hidden[key]?.callback === this && !MediaSwipePolicy.isInactive(state?.state)) forget(key)
             }
 
             override fun onSessionDestroyed() {
                 // The session may die before Android removes its stale notification.
                 // Keep this card dismissed until a *new* session is posted, but release
                 // the dead controller so we don't keep a callback or player alive.
-                stopWatching(key)
+                if (hidden[key]?.callback === this) stopWatching(key)
             }
         }
 
