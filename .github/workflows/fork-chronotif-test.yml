@@ -1,0 +1,168 @@
+name: Fork-only Windows CI (Chronotif Test Upgrade)
+
+# Intentionally not part of the feature branch or the upstream PR.
+# Only a manual dispatch from lgg/chronotif's default branch can run this.
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "Branch or SHA in lgg/chronotif to test"
+        type: string
+        required: true
+        default: experiment/media-delete-intent
+  # Optional owner-controlled one-shot trigger, for launching without the GitHub UI.
+  # Never runs on ordinary commits, PRs or external forks.
+  push:
+    branches: [main]
+    paths:
+      - '.github/ci-trigger/chronotif-test.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  test-apk:
+    # No PR trigger; restrict executing code on a personal Windows machine to the owner.
+    if: >-
+      github.repository == 'lgg/chronotif' &&
+      ((github.event_name == 'workflow_dispatch' && github.actor == 'lgg') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      github.event.head_commit.message == 'ci(fork): rebuild upgrade-compatible Chronotif Test'))
+    # GitHub runner *name* (chronotif-runner-ci) is not automatically a label.
+    # Use built-in labels so a registered Windows x64 runner can accept the job.
+    runs-on: [self-hosted, Windows, X64]
+    permissions:
+      contents: write  # Needed only to publish the manual test prerelease.
+    defaults:
+      run:
+        shell: powershell
+    env:
+      ANDROID_HOME: 'D:\Android\Sdk'
+      JAVA_HOME: 'C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot'
+      GRADLE_USER_HOME: 'D:\Android\gradle-chronotif'
+      GH_CLI_EXE: 'C:\Program Files\GitHub CLI\gh.exe'
+
+    steps:
+      - name: Checkout fork feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref || 'experiment/media-delete-intent' }}
+          persist-credentials: false
+
+      - name: Verify existing tools (no installations)
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($p in @(
+            "$env:JAVA_HOME\bin\java.exe",
+            "$env:JAVA_HOME\bin\javac.exe",
+            "$env:ANDROID_HOME\platforms\android-36\android.jar",
+            "$env:ANDROID_HOME\build-tools\36.0.0\aapt2.exe",
+            ".\gradlew.bat"
+          )) {
+            if (-not (Test-Path -LiteralPath $p)) {
+              throw "Missing locally installed tool: $p. Install it manually; CI will not install SDK or JDK."
+            }
+            Write-Host "OK: $p"
+          }
+          & "$env:JAVA_HOME\bin\java.exe" -version
+          if ($LASTEXITCODE -ne 0) { throw "Java failed" }
+          & git --version
+          if ($LASTEXITCODE -ne 0) { throw "Git is missing" }
+          if (-not (Test-Path -LiteralPath $env:GH_CLI_EXE)) { throw "GitHub CLI missing: $env:GH_CLI_EXE" }
+          & "$env:GH_CLI_EXE" --version
+          if ($LASTEXITCODE -ne 0) { throw "GitHub CLI could not start" }
+
+      - name: Preserve Chronotif Test package and name
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $path = 'app\build.gradle.kts'
+          $gradle = [System.IO.File]::ReadAllText((Join-Path $PWD $path))
+          $fromId = 'applicationIdSuffix = ".debug"'
+          $fromName = 'versionNameSuffix = "-debug"'
+          if ($gradle.Split($fromId).Count -ne 2 -or $gradle.Split($fromName).Count -ne 2) {
+            throw 'Unexpected debug build configuration; refusing to change package'
+          }
+          $gradle = $gradle.Replace($fromId, 'applicationIdSuffix = ".dev"')
+          $gradle = $gradle.Replace($fromName, 'versionNameSuffix = "-test"')
+          [System.IO.File]::WriteAllText((Join-Path $PWD $path), $gradle, ([System.Text.UTF8Encoding]::new($false)))
+          $resDir = 'app\src\debug\res\values'
+          New-Item -ItemType Directory -Path $resDir -Force | Out-Null
+          $labelXml = '<?xml version="1.0" encoding="utf-8"?><resources><string name="app_name">Chronotif Test</string></resources>'
+          [System.IO.File]::WriteAllText((Join-Path $PWD "$resDir\strings.xml"), $labelXml, ([System.Text.UTF8Encoding]::new($false)))
+
+      - name: Run tests, Android lint and build test APK
+        run: |
+          & .\gradlew.bat --no-daemon testDebugUnitTest lintDebug assembleDebug
+          if ($LASTEXITCODE -ne 0) { throw "Gradle failed with exit code $LASTEXITCODE" }
+          if (-not (Test-Path 'app\build\outputs\apk\debug\app-debug.apk')) {
+            throw 'Debug APK was not produced'
+          }
+
+      - name: Verify update compatibility with installed Chronotif Test / 7
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $referenceTag = 'chronotif-test-40783160648-1'
+          $referenceApk = "$referenceTag.apk"
+          $oldDir = Join-Path $env:RUNNER_TEMP 'chronotif-previous-test'
+          New-Item -ItemType Directory -Path $oldDir -Force | Out-Null
+          & "$env:GH_CLI_EXE" release download $referenceTag --repo lgg/chronotif --pattern $referenceApk --dir $oldDir --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot download the previous Chronotif Test APK' }
+          $old = Join-Path $oldDir $referenceApk
+          $new = 'app\build\outputs\apk\debug\app-debug.apk'
+          $aapt = "$env:ANDROID_HOME\build-tools\36.0.0\aapt2.exe"
+          $signer = "$env:ANDROID_HOME\build-tools\36.0.0\apksigner.bat"
+          if (-not (Test-Path $aapt) -or -not (Test-Path $signer)) {
+            throw 'Android aapt2 or apksigner was not found'
+          }
+          $oldInfo = (& $aapt dump badging $old | Out-String)
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect previous APK' }
+          $newInfo = (& $aapt dump badging $new | Out-String)
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect new APK' }
+          $pattern = "package: name='app\.chronotif\.dev' versionCode='(\d+)'"
+          $oldMatch = [regex]::Match($oldInfo, $pattern)
+          $newMatch = [regex]::Match($newInfo, $pattern)
+          if (-not $oldMatch.Success -or -not $newMatch.Success) {
+            throw 'Package name changed: both APKs must be app.chronotif.dev'
+          }
+          $oldCode = [int64]$oldMatch.Groups[1].Value
+          $newCode = [int64]$newMatch.Groups[1].Value
+          if ($newCode -le $oldCode) {
+            throw "versionCode is not higher than previous Test: $oldCode -> $newCode"
+          }
+          $oldSigner = (& $signer verify --print-certs $old | Out-String)
+          if ($LASTEXITCODE -ne 0) { throw 'Previous signing certificate invalid' }
+          $newSigner = (& $signer verify --print-certs $new | Out-String)
+          if ($LASTEXITCODE -ne 0) { throw 'New signing certificate invalid' }
+          $digestPattern = '(?im)Signer #1 certificate SHA-256 digest:\s*([0-9a-f]{64})'
+          $oldDigest = [regex]::Match($oldSigner, $digestPattern)
+          $newDigest = [regex]::Match($newSigner, $digestPattern)
+          if (-not $oldDigest.Success -or -not $newDigest.Success -or $oldDigest.Groups[1].Value -ne $newDigest.Groups[1].Value) {
+            throw 'Signing certificate differs from Chronotif Test / 7: cannot update installed app'
+          }
+          Write-Host "PACKAGE OK: app.chronotif.dev"
+          Write-Host "VERSION OK: $oldCode -> $newCode"
+          Write-Host "SIGNATURE OK: $($newDigest.Groups[1].Value)"
+
+      - name: Publish test prerelease to this fork
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sourceSha = (& git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot identify built source commit' }
+          $tag = "chronotif-test-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $apk = "$tag.apk"
+          Copy-Item 'app\build\outputs\apk\debug\app-debug.apk' $apk
+          $hash = (Get-FileHash $apk -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $apk" | Set-Content "$apk.sha256" -Encoding ASCII
+          & "$env:GH_CLI_EXE" release create $tag $apk "$apk.sha256" --target $sourceSha --title "Chronotif Test / 8 - Apple Music deleteIntent" --notes 'Fork-only Windows self-hosted test build; app.chronotif.dev installs alongside official Chronotif. Upgrade-compatible build of app.chronotif.dev from experiment/media-delete-intent. Previous Chronotif Test / 7 package, version and signing certificate are compared before publication. Built on the same Windows runner as previous Test releases.' --prerelease --latest=false
+          if ($LASTEXITCODE -ne 0) { throw "Release creation failed with exit code $LASTEXITCODE" }
+
+      - name: Save backup APK in Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: chronotif-test-upgrade-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
