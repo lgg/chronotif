@@ -91,7 +91,7 @@
     <string name="header_use_system_time">Use system time format</string>
     <string name="header_24_hour">24-hour format</string>
     <string name="header_clock_desc">The large clock appears above the date, in the panel header.</string>
-    <string name="header_system_time_desc">Follows Android's 12-hour or 24-hour setting. Disable for a manual override.</string>
+    <string name="header_system_time_desc">Follows Android\'s 12-hour or 24-hour setting. Disable for a manual override.</string>
     <string name="header_back">Back</string>
 
     <string name="setup_lock">Lock screen</string>
