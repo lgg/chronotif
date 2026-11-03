@@ -339,7 +339,8 @@ class NotificationBehaviorTest {
             .setOngoing(true)
             .build(), 2000, id = 13)
         assertFalse(ongoing.clearable)
-        assertFalse(MediaDismiss.canSwipe(ongoing, paused))
+        assertFalse("No deleteIntent: never pretend an ongoing media card is dismissible",
+            MediaDismiss.canSwipe(ongoing, paused))
         assertFalse(MediaDismiss.canSwipe(ongoing, stopped))
 
         val noClear = Notification.Builder(context, "media")
@@ -350,6 +351,25 @@ class NotificationBehaviorTest {
         val protectedEntry = post(noClear, 2000, id = 14)
         assertFalse(protectedEntry.clearable)
         assertFalse(MediaDismiss.canSwipe(protectedEntry, paused))
+
+        // Media3 apps including Apple Music may expose a deleteIntent despite
+        // setting NO_CLEAR: the app itself can process an explicit user dismissal.
+        val pendingDelete = android.app.PendingIntent.getBroadcast(
+            context, 404, Intent("app.chronotif.test.EXPLICIT_MEDIA_DISMISS"),
+            android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        val protectedWithDelete = post(Notification.Builder(context, "media")
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setContentTitle("Protected but app-dismissable")
+            .setStyle(Notification.MediaStyle())
+            .setDeleteIntent(pendingDelete)
+            .build().apply { flags = flags or Notification.FLAG_NO_CLEAR }, 2000, id = 15)
+        assertFalse(protectedWithDelete.clearable)
+        assertTrue(MediaDismiss.canSwipe(protectedWithDelete, paused))
+        assertTrue(MediaDismiss.canSwipe(protectedWithDelete, stopped))
+        assertFalse(MediaDismiss.canSwipe(protectedWithDelete, playing))
+        assertFalse(MediaDismiss.canSwipe(protectedWithDelete, buffering))
+        assertFalse(MediaDismiss.canSwipe(protectedWithDelete, null))
     }
 
     @Test

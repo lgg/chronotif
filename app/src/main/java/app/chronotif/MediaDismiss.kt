@@ -13,14 +13,20 @@ import app.chronotif.core.Kind
 /**
  * Dismiss inactive media through Android's real notification listener.
  *
- * Unlike SystemUI's media carousel, a third-party notification listener cannot
- * dismiss an ongoing / FLAG_NO_CLEAR media entry. Never hide only Chronotif's
- * copy: an undisposable media player should remain visible.
+ * The notification listener cannot cancel ongoing / FLAG_NO_CLEAR entries, but
+ * some media apps expose a deleteIntent for explicit user dismissal. In this
+ * experimental fork build, try the app-provided intent on a user swipe while the
+ * media session is provably inactive; never hide a notification locally.
+ *
+ * A successful PendingIntent.send() means only that the command was delivered,
+ * not that Android removed the notification. NotifList restores the card if the
+ * NotificationListenerService does not observe its removal.
  */
 object MediaDismiss {
-    /** The drag must be rejected when removal is impossible or playback is active. */
+    /** Only dismiss after a user gesture and a confirmed inactive media state. */
     fun canSwipe(e: Entry, playback: PlaybackState?): Boolean =
-        e.kind == Kind.MEDIA && e.clearable && MediaSwipePolicy.isInactive(playback?.state)
+        e.kind == Kind.MEDIA &&
+            MediaSwipePolicy.canAttempt(playback?.state, e.clearable, e.n.deleteIntent != null)
 
     /**
      * Playback may have resumed while the swipe animated. Look up the current
@@ -30,19 +36,36 @@ object MediaDismiss {
      */
     fun dismiss(context: Context, entry: Entry): Boolean {
         val live = NotifStore.get(entry.key) ?: return false
-        if (live.kind != Kind.MEDIA || !live.clearable) return false
+        if (live.kind != Kind.MEDIA) return false
 
         val token = mediaToken(live.n) ?: return false
+        // A notification key may be reused when a different media session arrives.
+        if (mediaToken(entry.n) != token) return false
         val controller = runCatching {
             MediaController(context.applicationContext, token)
         }.getOrNull() ?: return false
-        if (!MediaSwipePolicy.isInactive(controller.playbackState?.state)) return false
+        if (!MediaSwipePolicy.canAttempt(
+                controller.playbackState?.state, live.clearable, live.n.deleteIntent != null
+            )
+        ) return false
 
+        // Require a connected listener to observe real removal before the UI considers
+        // the dismissal complete. This never edits the local notification store.
         val listener = ListenerService.instance ?: return false
-        return runCatching {
-            listener.cancelNotification(live.key)
-            true
-        }.getOrDefault(false)
+        return if (live.clearable) {
+            runCatching {
+                listener.cancelNotification(live.key)
+                true
+            }.getOrDefault(false)
+        } else {
+            // The source app (not Chronotif) decides whether this explicit user
+            // dismissal removes its ongoing media notification. No stop()/pause().
+            val delete = live.n.deleteIntent ?: return false
+            runCatching {
+                delete.send()
+                true
+            }.getOrDefault(false)
+        }
     }
 
     private fun mediaToken(notification: Notification): MediaSession.Token? =
@@ -56,6 +79,9 @@ object MediaDismiss {
 
 /** Unknown or transitional states are never considered safe to dismiss. */
 internal object MediaSwipePolicy {
+    fun canAttempt(state: Int?, clearable: Boolean, hasDeleteIntent: Boolean): Boolean =
+        isInactive(state) && (clearable || hasDeleteIntent)
+
     fun isInactive(state: Int?): Boolean = when (state) {
         PlaybackState.STATE_PAUSED,
         PlaybackState.STATE_STOPPED,

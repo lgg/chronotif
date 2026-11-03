@@ -9,6 +9,17 @@ import org.junit.Test
 
 class MediaSwipePolicyTest {
     @Test
+    fun deleteIntentIsOnlyAnAlternativeForKnownInactivePlayback() {
+        assertTrue(MediaSwipePolicy.canAttempt(PlaybackState.STATE_PAUSED, false, true))
+        assertTrue(MediaSwipePolicy.canAttempt(PlaybackState.STATE_STOPPED, false, true))
+        assertTrue(MediaSwipePolicy.canAttempt(PlaybackState.STATE_PAUSED, true, false))
+        assertFalse(MediaSwipePolicy.canAttempt(PlaybackState.STATE_PAUSED, false, false))
+        assertFalse(MediaSwipePolicy.canAttempt(PlaybackState.STATE_PLAYING, false, true))
+        assertFalse(MediaSwipePolicy.canAttempt(PlaybackState.STATE_BUFFERING, false, true))
+        assertFalse(MediaSwipePolicy.canAttempt(null, false, true))
+    }
+
+    @Test
     fun onlyKnownInactiveStatesAreDismissible() {
         for (state in listOf(
             PlaybackState.STATE_PAUSED,
