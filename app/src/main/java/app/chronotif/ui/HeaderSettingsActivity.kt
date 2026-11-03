@@ -71,7 +71,7 @@ class HeaderSettingsActivity : Activity() {
             progress = Prefs.headerClockSizeSp - Prefs.HEADER_CLOCK_MIN_SP
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(bar: SeekBar, value: Int, fromUser: Boolean) {
-                    if (!fromUser) return
+                    // Always persist changes, including accessible/programmatic slider updates.
                     val sp = (value + Prefs.HEADER_CLOCK_MIN_SP)
                         .coerceIn(Prefs.HEADER_CLOCK_MIN_SP, Prefs.HEADER_CLOCK_MAX_SP)
                     Prefs.headerClockSizeSp = sp
