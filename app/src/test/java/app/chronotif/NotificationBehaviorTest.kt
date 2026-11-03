@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Looper
 import android.os.Process
+import android.media.session.PlaybackState
 import android.service.notification.NotificationListenerService.RankingMap
 import android.service.notification.NotificationListenerService.Ranking
 import android.service.notification.StatusBarNotification
@@ -307,6 +308,48 @@ class NotificationBehaviorTest {
         val s = Attention.sections(NotifStore.visible(), lastCheck = 0)
         assertEquals(listOf(paused.key), s.media.map { it.key })
         assertTrue(s.earlier.isEmpty() && s.fresh.isEmpty())
+    }
+
+    @Test
+    fun dismissOnlyClearableInactiveMediaAndNeverPretendOngoingWasRemoved() {
+        fun playback(state: Int) = PlaybackState.Builder()
+            .setState(state, 0L, 1f).build()
+        val paused = playback(PlaybackState.STATE_PAUSED)
+        val stopped = playback(PlaybackState.STATE_STOPPED)
+        val playing = playback(PlaybackState.STATE_PLAYING)
+        val buffering = playback(PlaybackState.STATE_BUFFERING)
+
+        val clearable = post(Notification.Builder(context, "media")
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setContentTitle("Paused track")
+            .setStyle(Notification.MediaStyle())
+            .build(), 2000, id = 12)
+        assertEquals(Kind.MEDIA, clearable.kind)
+        assertTrue(clearable.clearable)
+        assertTrue(MediaDismiss.canSwipe(clearable, paused))
+        assertTrue(MediaDismiss.canSwipe(clearable, stopped))
+        assertFalse(MediaDismiss.canSwipe(clearable, playing))
+        assertFalse(MediaDismiss.canSwipe(clearable, buffering))
+        assertFalse(MediaDismiss.canSwipe(clearable, null))
+
+        val ongoing = post(Notification.Builder(context, "media")
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setContentTitle("Ongoing track")
+            .setStyle(Notification.MediaStyle())
+            .setOngoing(true)
+            .build(), 2000, id = 13)
+        assertFalse(ongoing.clearable)
+        assertFalse(MediaDismiss.canSwipe(ongoing, paused))
+        assertFalse(MediaDismiss.canSwipe(ongoing, stopped))
+
+        val noClear = Notification.Builder(context, "media")
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setContentTitle("Protected track")
+            .setStyle(Notification.MediaStyle())
+            .build().apply { flags = flags or Notification.FLAG_NO_CLEAR }
+        val protectedEntry = post(noClear, 2000, id = 14)
+        assertFalse(protectedEntry.clearable)
+        assertFalse(MediaDismiss.canSwipe(protectedEntry, paused))
     }
 
     @Test
