@@ -42,7 +42,7 @@ import app.chronotif.R
  */
 class LockActivity : Activity(), NotifList.Host {
 
-    override val activity: Activity get() = this
+    override val context: Context get() = this
 
     private lateinit var scroll: ScrollView
     private lateinit var list: NotifList
@@ -177,12 +177,7 @@ class LockActivity : Activity(), NotifList.Host {
     override fun guarded(action: () -> Unit) = unlock(action)
 
     override fun replyElsewhere(e: Entry, actionIndex: Int) {
-        startActivity(
-            Intent(this, PanelActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                .putExtra(PanelActivity.EXTRA_FOCUS_KEY, e.key)
-                .putExtra(PanelActivity.EXTRA_REPLY_INDEX, actionIndex),
-        )
+        Panel.open(this, e.key, actionIndex)
     }
 
     /**
@@ -239,6 +234,13 @@ class LockActivity : Activity(), NotifList.Host {
     private var tracker: VelocityTracker? = null
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        // A Preview or the image viewer scrolls and swipes on its own; swiping up there isn't "unlock".
+        val decor = window.decorView as android.view.ViewGroup
+        if ((0 until decor.childCount).any { decor.getChildAt(it) is Overlay }) {
+            tracker?.recycle()
+            tracker = null
+            return super.dispatchTouchEvent(ev)
+        }
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 downY = ev.rawY

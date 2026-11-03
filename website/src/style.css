@@ -757,10 +757,27 @@ q {
   background: var(--accent-soft);
 }
 
-/* EARLIER: receded cards with "slivers" peeking out below, like the app's stacks. */
+/* EARLIER: receded cards, still newest first. */
+.d-receded .d-card {
+  position: relative;
+  background: #232326;
+  font-size: 0.75rem;
+  grid-template-columns: 1.75rem minmax(0, 1fr);
+}
+.d-receded .d-card > * {
+  opacity: 0.72;
+}
+.d-receded .d-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+.d-receded .d-body {
+  -webkit-line-clamp: 1;
+}
+
+/* An app stack: the newest card with "slivers" peeking out below, like the app's. */
 .d-stack {
   position: relative;
-  padding-bottom: 0;
 }
 .d-stack[data-count="2"] {
   padding-bottom: 0.45rem;
@@ -769,23 +786,7 @@ q {
   padding-bottom: 0.9rem;
 }
 .d-stack .d-card {
-  position: relative;
   z-index: 2;
-  background: #232326;
-  font-size: 0.75rem;
-}
-.d-stack .d-card > * {
-  opacity: 0.72;
-}
-.d-stack .d-icon {
-  width: 1.75rem;
-  height: 1.75rem;
-}
-.d-stack .d-card {
-  grid-template-columns: 1.75rem minmax(0, 1fr);
-}
-.d-stack .d-body {
-  -webkit-line-clamp: 1;
 }
 .d-stack::before,
 .d-stack::after {
@@ -795,8 +796,7 @@ q {
   border-radius: 0 0 0.85rem 0.85rem;
   pointer-events: none;
 }
-.d-stack[data-count="2"]::before,
-.d-stack[data-count="3"]::before {
+.d-stack::before {
   left: 0.6rem;
   right: 0.6rem;
   bottom: 0;

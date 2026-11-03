@@ -1,6 +1,7 @@
 // An illustrative model of Chronotif's panel, mirroring core/Attention.kt in the app:
 // one "last check" watermark splits notifications into NEW (arrived after it) and EARLIER
-// (folded into per-app stacks, ordered by their newest member). Media players sit on top;
+// (already checked, receded, still newest first; one app's neighbouring cards that arrived within
+// 30 minutes of the newest of them fold into a stack). Media players sit on top;
 // background work folds into a Running pill at the bottom.
 // Times are in minutes. All content is made up.
 
@@ -33,23 +34,31 @@ function initialState() {
       { id: "ana", app: "messages", title: "Ana", body: "See you tomorrow!", alert: 470 },
       { id: "climb", app: "messages", title: "Climbing group", body: "Leo: Thursday works for me", alert: 410 },
       { id: "digest", app: "mail", title: "Weekly digest", body: "Five things worth reading this week.", alert: 380 },
-      { id: "receipt", app: "mail", title: "Receipt", body: "Thanks for your order.", alert: 300 },
+      { id: "receipt", app: "mail", title: "Receipt", body: "Thanks for your order.", alert: 366 },
+      { id: "invoice", app: "mail", title: "Invoice", body: "Your invoice is ready.", alert: 280 },
     ],
   };
 }
 
+const STACK_WINDOW = 30;
+
+// One app's neighbouring cards (newest first) join a stack while within STACK_WINDOW of its newest card.
+function appStacks(cards) {
+  const stacks = [];
+  for (const card of cards) {
+    const stack = stacks.at(-1);
+    if (stack && stack[0].app === card.app && stack[0].alert - card.alert <= STACK_WINDOW) stack.push(card);
+    else stacks.push([card]);
+  }
+  return stacks;
+}
+
 function sections(state) {
   const byRecent = [...state.items].sort((a, b) => b.alert - a.alert);
-  const fresh = [];
-  const stacks = new Map();
-  for (const item of byRecent) {
-    if (item.alert > state.lastCheck) fresh.push(item);
-    else {
-      if (!stacks.has(item.app)) stacks.set(item.app, []);
-      stacks.get(item.app).push(item);
-    }
-  }
-  return { fresh, earlier: [...stacks.values()] };
+  return {
+    fresh: byRecent.filter((item) => item.alert > state.lastCheck),
+    earlier: appStacks(byRecent.filter((item) => item.alert <= state.lastCheck)),
+  };
 }
 
 function ago(state, t) {
@@ -105,8 +114,9 @@ function render(state, list, fresh = new Set()) {
     html += earlier
       .map((stack) => {
         const more = stack.length - 1;
-        const label = more ? `<span class="visually-hidden">, and ${more} more from ${APPS[stack[0].app].name}</span>` : "";
-        return `<div role="listitem" class="d-stack" data-count="${Math.min(stack.length, 3)}">${card(state, stack[0])}${label}</div>`;
+        if (!more) return `<div role="listitem" class="d-receded">${card(state, stack[0])}</div>`;
+        const label = `<span class="visually-hidden">, and ${more} more from ${APPS[stack[0].app].name}</span>`;
+        return `<div role="listitem" class="d-receded d-stack" data-count="${Math.min(stack.length, 3)}">${card(state, stack[0])}${label}</div>`;
       })
       .join("");
     html += `</div>`;

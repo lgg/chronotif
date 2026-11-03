@@ -31,6 +31,7 @@ import app.chronotif.ListenerService
 import app.chronotif.PanelTile
 import app.chronotif.Prefs
 import app.chronotif.R
+import app.chronotif.StatusBarSwipe
 import app.chronotif.Updater
 
 /** One-time setup and settings. Not needed in daily use. */
@@ -41,6 +42,17 @@ class SetupActivity : Activity() {
     private val refreshers = ArrayList<() -> Unit>()
     private val isXiaomi = Build.MANUFACTURER.equals("xiaomi", true) ||
         Build.BRAND.lowercase() in setOf("xiaomi", "redmi", "poco")
+
+    private companion object {
+        /** A listener the system is still binding looks disconnected for a moment after launch. */
+        const val SETTLE_MS = 2000L
+    }
+
+    private var settled = false
+    private val settle = Runnable {
+        settled = true
+        refreshers.forEach { it() }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,11 +74,16 @@ class SetupActivity : Activity() {
     override fun onResume() {
         super.onResume()
         refreshers.forEach { it() }
+        // Back from granting a permission (e.g. display over other apps): let the strip re-check.
+        StatusBarSwipe.instance?.refresh()
         Updater.foreground = true
+        body.postDelayed(settle, SETTLE_MS)
     }
 
     override fun onPause() {
         super.onPause()
+        body.removeCallbacks(settle)
+        settled = false
         Updater.foreground = false
     }
 
@@ -77,12 +94,21 @@ class SetupActivity : Activity() {
         toggle(R.string.enabled, R.string.enabled_desc, { Prefs.enabled }) {
             Prefs.enabled = it
             applyHandle()
+            StatusBarSwipe.instance?.refresh()
             TileService.requestListeningState(this, ComponentName(this, PanelTile::class.java))
         }
 
         section(R.string.setup_permissions)
         permission(R.string.perm_listener, R.string.perm_listener_desc,
-            granted = { ListenerService.isEnabled(this) }) { openListenerSettings() }
+            granted = { ListenerService.isEnabled(this) }, broken = { disconnected() }) { openListenerSettings() }
+        // Granted but unbound: the system can't restart the listener (MIUI without autostart),
+        // and only toggling access off and on reconnects it.
+        val disconnectedHint = text(
+            getString(if (isXiaomi) R.string.perm_disconnected_xiaomi else R.string.perm_disconnected),
+            13f, secondary = true,
+        )
+        body.addView(disconnectedHint, gap(4))
+        refreshers += { disconnectedHint.visibility = if (disconnected()) View.VISIBLE else View.GONE }
         val restricted = text(getString(R.string.perm_restricted_hint), 13f, secondary = true)
         body.addView(restricted, gap(4))
         refreshers += {
@@ -111,6 +137,24 @@ class SetupActivity : Activity() {
         }
 
         section(R.string.setup_panel)
+        // The feature is optional, so the restricted-settings hint waits until someone tries it.
+        var swipeAsked = false
+        permission(R.string.status_swipe_title, R.string.status_swipe_desc,
+            granted = { StatusBarSwipe.isEnabled(this) },
+            broken = { settled && StatusBarSwipe.isEnabled(this) && StatusBarSwipe.instance == null }) {
+            swipeAsked = true
+            open(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
+        val swipeRestricted = text(getString(R.string.perm_restricted_hint), 13f, secondary = true)
+        body.addView(swipeRestricted, gap(4))
+        refreshers += {
+            swipeRestricted.visibility =
+                if (Build.VERSION.SDK_INT >= 33 && swipeAsked && !StatusBarSwipe.isEnabled(this)) View.VISIBLE else View.GONE
+        }
+        toggle(R.string.status_swipe_enabled, null, { Prefs.statusSwipeEnabled }) {
+            Prefs.statusSwipeEnabled = it
+            StatusBarSwipe.instance?.refresh()
+        }
         toggle(R.string.handle_enabled, R.string.handle_enabled_desc, { Prefs.handleEnabled }) {
             Prefs.handleEnabled = it
             applyHandle()
@@ -145,7 +189,7 @@ class SetupActivity : Activity() {
         val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         buttons.addView(Button(this).apply {
             setText(R.string.open_panel)
-            setOnClickListener { startActivity(Intent(context, PanelActivity::class.java)) }
+            setOnClickListener { Panel.open(context) }
         })
         if (Build.VERSION.SDK_INT >= 33) buttons.addView(Button(this).apply {
             text = "+ " + getString(R.string.tile_label)
@@ -248,12 +292,15 @@ class SetupActivity : Activity() {
 
     // --- Tiny view helpers ---
 
+    // Explicit colours: some themes (HyperOS dark) make plain text grey, unlike the switch labels.
+    private val palette by lazy { Palette(this) }
+
     private fun text(s: CharSequence, sp: Float, bold: Boolean = false, secondary: Boolean = false) =
         TextView(this).apply {
             text = s
             setTextSize(TypedValue.COMPLEX_UNIT_SP, sp)
             if (bold) setTypeface(typeface, android.graphics.Typeface.BOLD)
-            if (secondary) alpha = 0.7f
+            setTextColor(if (secondary) palette.textSecondary else palette.text)
         }
 
     private fun gap(top: Int) = Ui.lp().apply { topMargin = dp(top) }
@@ -265,7 +312,15 @@ class SetupActivity : Activity() {
         }, gap(28))
     }
 
-    private fun permission(title: Int, desc: Int, granted: (() -> Boolean)?, onClick: () -> Unit): View {
+    private fun disconnected() = settled && ListenerService.isEnabled(this) && ListenerService.instance == null
+
+    private fun permission(
+        title: Int,
+        desc: Int,
+        granted: (() -> Boolean)?,
+        broken: () -> Boolean = { false },
+        onClick: () -> Unit,
+    ): View {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -285,7 +340,13 @@ class SetupActivity : Activity() {
             } else {
                 // Stays tappable when granted: ROMs can drop a grant (or the binding) behind
                 // our back, and the settings screen is the only way to repair it.
-                button.setText(if (granted()) R.string.granted else R.string.grant)
+                button.setText(
+                    when {
+                        !granted() -> R.string.grant
+                        broken() -> R.string.reconnect
+                        else -> R.string.granted
+                    },
+                )
             }
         }
         refresh()
@@ -297,6 +358,7 @@ class SetupActivity : Activity() {
         val s = Switch(this).apply {
             text = getString(title)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextColor(palette.text)
             isChecked = value()
             setOnCheckedChangeListener { _, v -> onChange(v) }
         }
@@ -312,6 +374,7 @@ class SetupActivity : Activity() {
             group.addView(RadioButton(this).apply {
                 id = View.generateViewId()
                 setText(l)
+                setTextColor(palette.text)
                 isChecked = i == selected
                 setOnClickListener { onPick(i) }
             })

@@ -24,6 +24,16 @@
     <string name="reply_hint">Reply</string>
     <string name="send">Send</string>
     <string name="expand">Expand</string>
+    <string name="save">Save</string>
+    <string name="saved">Saved</string>
+    <string name="save_failed">Couldn\'t save</string>
+    <string name="share">Share</string>
+    <string name="open_in_app">Open in app</string>
+    <string name="video">Video</string>
+    <string name="close">Close</string>
+    <string name="image_counter">%1$d of %2$d</string>
+    <string name="view_image">View image</string>
+    <string name="more_photos">+%d</string>
     <string name="media_play">Play</string>
     <string name="media_pause">Pause</string>
     <string name="media_previous">Previous</string>
@@ -35,9 +45,9 @@
     <string name="more_in_stack">%d more</string>
 
     <!-- Setup -->
-    <string name="setup_intro">An iPhone-style, chronological notification panel. New notifications stay prominent; ones you\'ve already seen recede into Earlier. Open the panel with the edge handle or the Quick Settings tile — this screen is only for setup.</string>
+    <string name="setup_intro">An iPhone-style, chronological notification panel. New notifications stay prominent; ones you\'ve already seen recede into Earlier. Open the panel with the edge handle, the Quick Settings tile or the optional status-bar swipe — this screen is only for setup.</string>
     <string name="enabled">Chronotif is on</string>
-    <string name="enabled_desc">Turn off to hide the edge handle and lock-screen view without changing their settings. You can still open the panel from the Quick Settings tile.</string>
+    <string name="enabled_desc">Turn off to hide the edge handle, status-bar swipe and lock-screen view without changing their settings. You can still open the panel from the Quick Settings tile.</string>
     <string name="setup_permissions">Permissions</string>
     <string name="perm_listener">Notification access</string>
     <string name="perm_listener_desc">Read, open, dismiss and act on notifications.</string>
@@ -46,13 +56,20 @@
     <string name="perm_xiaomi">Xiaomi permissions</string>
     <string name="perm_xiaomi_desc">Enable “Show on Lock screen” and “Display pop-up windows while running in the background”.</string>
     <string name="perm_autostart">Xiaomi autostart</string>
-    <string name="perm_autostart_desc">Keeps notification access alive after reboots.</string>
+    <string name="perm_autostart_desc">Required. Without it, MIUI keeps Chronotif disconnected after you clear recent apps, after a reboot, or whenever it closes Chronotif in the background.</string>
+    <string name="perm_disconnected">Notification access is on, but Chronotif isn\'t connected. Tap Reconnect, then turn notification access off and on.</string>
+    <string name="perm_disconnected_xiaomi">Notification access is on, but Chronotif isn\'t connected. Turn on Xiaomi autostart below, then tap Reconnect and turn notification access off and on once.</string>
     <string name="perm_restricted_hint">Greyed-out toggle? Android blocks this for sideloaded apps: open App info → ⋮ → “Allow restricted settings” (on HyperOS, the switch under Advanced settings), then try again.</string>
     <string name="granted">Granted</string>
     <string name="grant">Grant</string>
+    <string name="reconnect">Reconnect</string>
     <string name="open">Open</string>
 
     <string name="setup_panel">Panel</string>
+    <string name="status_swipe_title">Status-bar swipe</string>
+    <string name="status_swipe_desc">Tap or swipe down on the left half of the status bar to open Chronotif instead of the system notifications. The other half works as usual. Needs Display over other apps, and Chronotif turned on in Accessibility settings; it only uses that to place the touch area and doesn\'t read other apps\' screens.</string>
+    <string name="status_swipe_enabled">Use status-bar swipe</string>
+    <string name="status_swipe_service_desc">Lets you open Chronotif by tapping or swiping down on the left half of the status bar. Chronotif uses this only to place an invisible touch area there. It doesn\'t read other apps\' screens. Turn the swipe off any time in Chronotif\'s setup.</string>
     <string name="handle_enabled">Edge handle</string>
     <string name="handle_enabled_desc">A thin handle at the screen edge. Tap or swipe it to open the panel. It lights up when something is new.</string>
     <string name="handle_side">Side</string>

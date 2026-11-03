@@ -1,38 +1,27 @@
-name: Fork-only Windows CI (Chronotif Test)
+name: Fork-only Windows Android CI
 
-# Intentionally not part of the feature branch or the upstream PR.
-# Only a manual dispatch from lgg/chronotif's default branch can run this.
+# Run trusted main commits on the existing self-hosted Windows runner.
+# Never build unreviewed PR code on a personal machine.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       source_ref:
-        description: "Branch or SHA in lgg/chronotif to test"
-        type: string
+        description: "Trusted fork branch or commit to test (owner only)"
         required: true
-        default: feature/top-edge-swipe-trigger
-  # Optional owner-controlled one-shot trigger, for launching without the GitHub UI.
-  # Never runs on ordinary commits, PRs or external forks.
-  push:
-    branches: [main]
-    paths:
-      - '.github/ci-trigger/chronotif-test.txt'
+        type: string
+        default: main
 
 permissions:
   contents: read
 
 jobs:
-  test-apk:
-    # No PR trigger; restrict executing code on a personal Windows machine to the owner.
+  build-debug:
     if: >-
       github.repository == 'lgg/chronotif' &&
-      ((github.event_name == 'workflow_dispatch' && github.actor == 'lgg') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-      github.event.head_commit.message == 'ci(fork): run Chronotif Test on local runner'))
-    # GitHub runner *name* (chronotif-runner-ci) is not automatically a label.
-    # Use built-in labels so a registered Windows x64 runner can accept the job.
+      (github.event_name == 'push' || github.actor == 'lgg')
     runs-on: [self-hosted, Windows, X64]
-    permissions:
-      contents: write  # Needed only to publish the manual test prerelease.
     defaults:
       run:
         shell: powershell
@@ -40,84 +29,39 @@ jobs:
       ANDROID_HOME: 'D:\Android\Sdk'
       JAVA_HOME: 'C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot'
       GRADLE_USER_HOME: 'D:\Android\gradle-chronotif'
-      GH_CLI_EXE: 'C:\Program Files\GitHub CLI\gh.exe'
-
     steps:
-      - name: Checkout fork feature branch
+      - name: Check out trusted fork code
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.source_ref || 'feature/panel-ux-test' }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_ref || github.sha }}
           persist-credentials: false
 
-      - name: Verify existing tools (no installations)
+      - name: Verify installed Java and Android SDK
         run: |
           $ErrorActionPreference = 'Stop'
           foreach ($p in @(
             "$env:JAVA_HOME\bin\java.exe",
-            "$env:JAVA_HOME\bin\javac.exe",
             "$env:ANDROID_HOME\platforms\android-36\android.jar",
             "$env:ANDROID_HOME\build-tools\36.0.0\aapt2.exe",
             ".\gradlew.bat"
           )) {
-            if (-not (Test-Path -LiteralPath $p)) {
-              throw "Missing locally installed tool: $p. Install it manually; CI will not install SDK or JDK."
-            }
-            Write-Host "OK: $p"
+            if (-not (Test-Path -LiteralPath $p)) { throw "Required build tool missing: $p" }
           }
           & "$env:JAVA_HOME\bin\java.exe" -version
-          if ($LASTEXITCODE -ne 0) { throw "Java failed" }
-          & git --version
-          if ($LASTEXITCODE -ne 0) { throw "Git is missing" }
-          if (-not (Test-Path -LiteralPath $env:GH_CLI_EXE)) { throw "GitHub CLI missing: $env:GH_CLI_EXE" }
-          & "$env:GH_CLI_EXE" --version
-          if ($LASTEXITCODE -ne 0) { throw "GitHub CLI could not start" }
+          if ($LASTEXITCODE -ne 0) { throw "Java execution failed" }
 
-      - name: Make a separate test package in runner workspace only
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $path = 'app\build.gradle.kts'
-          $gradle = [System.IO.File]::ReadAllText((Join-Path $PWD $path))
-          $anchor = '    buildTypes {'
-          if (-not $gradle.Contains($anchor)) { throw "Cannot locate Gradle buildTypes block" }
-          if ($gradle.Contains('applicationIdSuffix = ".dev"')) {
-            Write-Host "Test app suffix already configured in source"
-          } else {
-            $replacement = @(
-            '    buildTypes {',
-            '        debug {',
-            '            applicationIdSuffix = ".dev"',
-            '            versionNameSuffix = "-test"',
-            '        }'
-          ) -join "`n"
-          $patched = $gradle.Replace($anchor, $replacement)
-            $utf8 = New-Object System.Text.UTF8Encoding -ArgumentList $false
-            [System.IO.File]::WriteAllText((Join-Path $PWD $path), $patched, $utf8)
-          }
-          $resDir = 'app\src\debug\res\values'
-          New-Item -ItemType Directory -Path $resDir -Force | Out-Null
-          $labelXml = '<?xml version="1.0" encoding="utf-8"?><resources><string name="app_name">Chronotif Test</string></resources>'
-          $utf8 = New-Object System.Text.UTF8Encoding -ArgumentList $false
-          [System.IO.File]::WriteAllText((Join-Path $PWD "$resDir\strings.xml"), $labelXml, $utf8)
-
-      - name: Run tests, Android lint and build test APK
+      - name: Unit tests, lint, debug APK
         run: |
           & .\gradlew.bat --no-daemon testDebugUnitTest lintDebug assembleDebug
-          if ($LASTEXITCODE -ne 0) { throw "Gradle failed with exit code $LASTEXITCODE" }
+          if ($LASTEXITCODE -ne 0) { throw "Gradle failed: $LASTEXITCODE" }
           if (-not (Test-Path 'app\build\outputs\apk\debug\app-debug.apk')) {
             throw 'Debug APK was not produced'
           }
 
-      - name: Publish test prerelease to this fork
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $sourceSha = (& git rev-parse HEAD).Trim()
-          if ($LASTEXITCODE -ne 0) { throw 'Cannot identify built source commit' }
-          $tag = "chronotif-test-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
-          $apk = "$tag.apk"
-          Copy-Item 'app\build\outputs\apk\debug\app-debug.apk' $apk
-          $hash = (Get-FileHash $apk -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  $apk" | Set-Content "$apk.sha256" -Encoding ASCII
-          & "$env:GH_CLI_EXE" release create $tag $apk "$apk.sha256" --target $sourceSha --title "Chronotif Test / $env:GITHUB_RUN_NUMBER" --notes 'Fork-only Windows self-hosted test build; app.chronotif.dev installs alongside official Chronotif. Tests top swipe, optional empty-area tap dismissal, and header alignment; all opt-in features default OFF. Built from selected source ref without modifying upstream CI.' --prerelease --latest=false
-          if ($LASTEXITCODE -ne 0) { throw "Release creation failed with exit code $LASTEXITCODE" }
+      - name: Save installable debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: chronotif-debug-${{ github.run_number }}-${{ github.run_attempt }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14

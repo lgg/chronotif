@@ -8,11 +8,11 @@ package app.chronotif.core
  * Every notification carries an [Meta.alertTime]: when it last *arrived* (first post, or an
  * update that genuinely brought new content). A single watermark, the time of the user's last
  * meaningful check, splits notifications into NEW (arrived after it) and EARLIER (already seen).
- * EARLIER is folded into per-app stacks so it recedes instead of cluttering.
+ * Both are in time order. In EARLIER, one app's cards that sit next to each other and arrived close
+ * together fold into a stack ([appStacks]). A conversation's messages are split the same way as
+ * notifications when it's drawn ([newMessages]).
  */
 interface Meta {
-    /** Notifications sharing a stack id fold together in EARLIER (one app, one user). */
-    val stackId: String
     val alertTime: Long
     val kind: Kind
 }
@@ -28,42 +28,70 @@ enum class Kind {
     RUNNING,
 }
 
-class Stack<T>(val id: String, val items: List<T>)
-
 class Sections<T>(
     val calls: List<T>,
     val media: List<T>,
     val fresh: List<T>,
-    val earlier: List<Stack<T>>,
+    val earlier: List<T>,
     val running: List<T>,
 ) {
     /** Running work alone doesn't make the list non-empty in any way worth announcing. */
     val isEmpty get() = calls.isEmpty() && media.isEmpty() && fresh.isEmpty() && earlier.isEmpty()
-    val earlierCount get() = earlier.sumOf { it.items.size }
+    val earlierCount get() = earlier.size
 }
 
 object Attention {
 
-    /** Newest first everywhere; EARLIER stacks are ordered by their newest member. */
+    /** Newest first everywhere, EARLIER included; [appStacks] folds EARLIER only where that keeps time order. */
     fun <T : Meta> sections(items: Collection<T>, lastCheck: Long): Sections<T> {
         val byRecent = items.sortedByDescending { it.alertTime }
         val calls = ArrayList<T>()
         val media = ArrayList<T>()
         val running = ArrayList<T>()
         val fresh = ArrayList<T>()
-        val earlier = LinkedHashMap<String, MutableList<T>>()
+        val earlier = ArrayList<T>()
         for (item in byRecent) when (item.kind) {
             Kind.CALL -> calls += item
             Kind.MEDIA -> media += item
             Kind.RUNNING -> running += item
             Kind.NOTIFICATION ->
                 if (item.alertTime > lastCheck) fresh += item
-                else earlier.getOrPut(item.stackId) { ArrayList() } += item
+                else earlier += item
         }
-        return Sections(calls, media, fresh, earlier.map { (id, list) -> Stack(id, list) }, running)
+        return Sections(calls, media, fresh, earlier, running)
+    }
+
+    /** How far behind an app stack's newest card another card from that app may be and still join it. */
+    const val STACK_WINDOW = 30 * 60_000L
+
+    /**
+     * Folds EARLIER's [cards] (newest first) into app stacks (ADR 0004). A card joins the stack above it
+     * only when it comes straight after it, from the same [app], within [window] of the stack's newest
+     * card, so a stack never holds an old card above a newer one from another app. A null [app] stands
+     * alone (a conversation that is already its own stack).
+     */
+    fun <T> appStacks(
+        cards: List<T>, time: (T) -> Long, app: (T) -> String?, window: Long = STACK_WINDOW,
+    ): List<List<T>> {
+        val stacks = ArrayList<MutableList<T>>()
+        for (card in cards) {
+            val stack = stacks.lastOrNull()
+            val a = app(card)
+            if (stack != null && a != null && app(stack[0]) == a && time(stack[0]) - time(card) <= window) {
+                stack += card
+            } else stacks += mutableListOf(card)
+        }
+        return stacks
     }
 
     fun isNew(item: Meta, lastCheck: Long) = item.kind == Kind.NOTIFICATION && item.alertTime > lastCheck
+
+    /**
+     * How many of a New conversation's incoming messages (send times, oldest first) are New: those
+     * sent after the check, and at least the latest, since its arrival is what made it New.
+     */
+    fun newMessages(times: List<Long>, lastCheck: Long): Int =
+        times.count { it > lastCheck }.coerceIn(minOf(1, times.size), times.size)
 
     /** A check never moves the watermark backwards. */
     fun advance(lastCheck: Long, seenUpTo: Long) = maxOf(lastCheck, seenUpTo)
@@ -91,8 +119,13 @@ class AlertClock {
             message.time > prev.message.time ||
             (message.time == 0L && message != prev.message))
         val arrived = if (conversation) incoming else !quiet && signature != prev?.signature
-        val alertTime =
-            if (prev == null || arrived) postTime else prev.alertTime
+        val alertTime = when {
+            // First sight of a chat (after a restart, or an app re-alerting old chats): it arrived with
+            // its latest message, not now. The sender's clock may run a little ahead, hence min.
+            prev == null && conversation && message != null && message.time > 0 -> minOf(postTime, message.time)
+            prev == null || arrived -> postTime
+            else -> prev.alertTime
+        }
         // Keep the newest incoming marker when an app trims history or adds an outgoing reply.
         val latest = if (message != null && (prev?.message == null || message.time >= prev.message.time)) {
             message

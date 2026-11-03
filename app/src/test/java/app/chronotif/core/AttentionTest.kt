@@ -9,7 +9,7 @@ import org.junit.Test
 class AttentionTest {
     private data class N(
         val key: String,
-        override val stackId: String,
+        val app: String,
         override val alertTime: Long,
         override val kind: Kind = Kind.NOTIFICATION,
     ) : Meta
@@ -21,19 +21,69 @@ class AttentionTest {
             lastCheck = 15,
         )
         assertEquals(listOf("b", "c"), s.fresh.map { it.key })
-        assertEquals(listOf("mail"), s.earlier.map { it.id })
-        assertEquals(listOf("a", "d"), s.earlier[0].items.map { it.key })
+        assertEquals(listOf("a", "d"), s.earlier.map { it.key })
     }
 
     @Test
-    fun earlierStacksOrderedByNewestMember() {
+    fun earlierStaysInTimeOrderInsteadOfFoldingByApp() {
         val s = Attention.sections(
             listOf(N("a", "mail", 1), N("b", "chat", 3), N("c", "mail", 4), N("d", "sms", 2)),
             lastCheck = 100,
         )
         assertTrue(s.fresh.isEmpty())
-        assertEquals(listOf("mail", "chat", "sms"), s.earlier.map { it.id })
+        assertEquals(listOf("c", "b", "d", "a"), s.earlier.map { it.key })
         assertEquals(4, s.earlierCount)
+    }
+
+    @Test
+    fun earlierStacksOnlyAnAppsNeighbouringCardsThatArrivedCloseTogether() {
+        val min = 60_000L
+        val cards = listOf(
+            N("t3-now", "t3", 240 * min), N("t3-1m", "t3", 239 * min), N("t3-2m", "t3", 238 * min),
+            N("insta", "insta", 236 * min),
+            N("tt-a", "tiktok", 197 * min), N("tt-b", "tiktok", 197 * min),
+            N("tt-c", "tiktok", 196 * min), N("chat", "tiktok", 195 * min), N("tt-d", "tiktok", 194 * min),
+            // Four hours before the recent T3 cards, and not next to them: its own stack.
+            N("t3-4h-a", "t3", 0), N("t3-4h-b", "t3", 0),
+        )
+        val stacks = Attention.appStacks(cards, { it.alertTime }, { if (it.key == "chat") null else it.app })
+        assertEquals(
+            listOf(listOf("t3-now", "t3-1m", "t3-2m"), listOf("insta"), listOf("tt-a", "tt-b", "tt-c"),
+                listOf("chat"), listOf("tt-d"), listOf("t3-4h-a", "t3-4h-b")),
+            stacks.map { s -> s.map { it.key } },
+        )
+    }
+
+    @Test
+    fun anAppStackSpansAtMostTheWindowFromItsNewestCard() {
+        val min = 60_000L
+        // Each card is 20 minutes after the next, but the third is 40 behind the stack's newest.
+        val cards = listOf(N("a", "mail", 40 * min), N("b", "mail", 20 * min), N("c", "mail", 0))
+        assertEquals(listOf(listOf("a", "b"), listOf("c")),
+            Attention.appStacks(cards, { it.alertTime }, { it.app }).map { s -> s.map { it.key } })
+    }
+
+    @Test
+    fun aConversationSplitsAtTheCheckKeepingAtLeastItsLatestMessageNew() {
+        assertEquals(2, Attention.newMessages(listOf(5, 20, 30), lastCheck = 15))
+        assertEquals(3, Attention.newMessages(listOf(20, 30, 40), lastCheck = 15))
+        // Message times come from the sender's clock; a New conversation still shows its latest.
+        assertEquals(1, Attention.newMessages(listOf(5, 10), lastCheck = 15))
+        assertEquals(0, Attention.newMessages(emptyList(), lastCheck = 15))
+    }
+
+    @Test
+    fun aChatFirstSeenArrivedWithItsLatestMessageNotWhenItWasReposted() {
+        val c = AlertClock()
+        // Yesterday's chat, reposted just now (Chronotif restarted, WhatsApp re-alerted it).
+        assertEquals(1_000, c.onPosted("chat", 90_000, signature = 1, quiet = false, conversation = true,
+            message = MessageStamp(1_000, 1)))
+        // A message from a clock running slightly ahead still can't arrive later than its post.
+        assertEquals(90_000, AlertClock().onPosted("chat", 90_000, signature = 1, quiet = false, conversation = true,
+            message = MessageStamp(95_000, 1)))
+        // Plain-text chats have no message time: they arrive when posted, as before.
+        assertEquals(90_000, AlertClock().onPosted("chat", 90_000, signature = 1, quiet = false, conversation = true,
+            message = MessageStamp(0, 1)))
     }
 
     @Test
@@ -81,8 +131,9 @@ class AttentionTest {
         val c = AlertClock()
         fun post(time: Long, message: MessageStamp?) =
             c.onPosted("chat", time, signature = 1, quiet = true, conversation = true, message = message)
-        assertEquals(100, post(100, MessageStamp(10, 1)))
-        assertEquals(100, post(200, MessageStamp(10, 1)))
+        // First seen: it arrived with its message.
+        assertEquals(10, post(100, MessageStamp(10, 1)))
+        assertEquals(10, post(200, MessageStamp(10, 1)))
         assertEquals(300, post(300, MessageStamp(20, 1)))
         // Trimming history or appending an outgoing reply must not move the arrival time.
         assertEquals(300, post(400, MessageStamp(10, 1)))
