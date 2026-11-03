@@ -79,7 +79,8 @@ jobs:
           $gradle = [System.IO.File]::ReadAllText((Join-Path $PWD $path))
           $fromId = 'applicationIdSuffix = ".debug"'
           $fromName = 'versionNameSuffix = "-debug"'
-          if ($gradle.Split($fromId).Count -ne 2 -or $gradle.Split($fromName).Count -ne 2) {
+          if (([regex]::Matches($gradle, [regex]::Escape($fromId))).Count -ne 1 -or
+              ([regex]::Matches($gradle, [regex]::Escape($fromName))).Count -ne 1) {
             throw 'Unexpected debug build configuration; refusing to change package'
           }
           $gradle = $gradle.Replace($fromId, 'applicationIdSuffix = ".dev"')
