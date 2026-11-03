@@ -64,7 +64,8 @@ object NotifStore {
                 !e.ranking.isSuspended &&
                 e.ranking.suppressedVisualEffects and
                 android.app.NotificationManager.Policy.SUPPRESSED_EFFECT_NOTIFICATION_LIST == 0 &&
-                !(e.isSummary && e.groupId in groupsWithChildren)
+                !(e.isSummary && e.groupId in groupsWithChildren) &&
+                !MediaDismiss.isHidden(e.key)
         }
     }
 
@@ -81,6 +82,7 @@ object NotifStore {
     }
 
     fun connect(active: Array<StatusBarNotification>?, map: RankingMap) {
+        MediaDismiss.clear()
         connected = true
         entries.clear()
         hidden.keys.retainAll(active.orEmpty().map { it.key }.toSet())
@@ -90,6 +92,7 @@ object NotifStore {
     }
 
     fun disconnect() {
+        MediaDismiss.clear()
         connected = false
         entries.clear()
         hidden.clear()
@@ -99,10 +102,12 @@ object NotifStore {
 
     fun post(sbn: StatusBarNotification, map: RankingMap) {
         put(sbn, map)
+        entries[sbn.key]?.let(MediaDismiss::onPosted)
         changed()
     }
 
     fun remove(key: String, map: RankingMap?) {
+        MediaDismiss.onRemoved(key)
         entries.remove(key)
         hidden.remove(key)
         clock.onRemoved(key)

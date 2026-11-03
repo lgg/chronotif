@@ -24,6 +24,7 @@ import android.widget.SeekBar
 import app.chronotif.Apps
 import app.chronotif.Content
 import app.chronotif.Entry
+import app.chronotif.MediaDismiss
 import app.chronotif.R
 
 /**
@@ -53,7 +54,7 @@ class MediaPlayerView(context: Context, private val cb: CardCallbacks) : LinearL
     private var controller: MediaController? = null
     private var seeking = false
 
-    val swipe = SwipeDismiss({ entry?.clearable == true && !playing() }, { entry?.let(cb::onDismiss) })
+    val swipe = SwipeDismiss({ entry?.let { MediaDismiss.canSwipe(it, controller?.playbackState) } == true }, { entry?.let(cb::onDismiss) })
 
     private val callback = object : MediaController.Callback() {
         override fun onPlaybackStateChanged(state: PlaybackState?) = refresh()
