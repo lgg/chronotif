@@ -1,4 +1,0 @@
-Fork-only CI one-shot for combined panel UX.
-Source ref on push: feature/panel-ux-test
-Includes top swipe 1-200px, optional blank-space tap dismissal, and header/card left alignment.
-Run unit tests + lint + assembleDebug and publish test APK to fork Releases.
