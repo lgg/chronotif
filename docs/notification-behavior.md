@@ -60,8 +60,12 @@ title, large clock, full/short weekday and month names, and whether the date sho
 The panel's title and date retain their existing appearance by default; the large clock is
 off by default. The date follows the device's locale and calendar order. When the large clock
 is enabled it uses Android's current 12/24-hour time preference; a manual 12/24-hour override
-is available if the system option is turned off. The clock updates while the panel is visible
-using the panel's existing minute tick, including when the date changes at midnight.
+is available if the system option is turned off. The large clock size can be adjusted from
+32 to 112 sp (76 sp by default). A separate toggle moves the date to the right of the large
+clock, allowing up to three lines for a long localized date; when the clock is hidden, the
+date automatically returns to its usual left-aligned position. Both settings persist.
+The clock updates while the panel is visible using the panel's existing minute tick,
+including when the date changes at midnight.
 No live preview or additional background component is required. These settings affect only
 the notification panel, not the separate lock-screen appearance or notification cards.
 

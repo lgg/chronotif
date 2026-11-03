@@ -85,6 +85,8 @@
     <string name="header_settings_desc">Customize the panel title, clock and date.</string>
     <string name="header_show_title">Show Chronotif title</string>
     <string name="header_show_clock">Show large clock</string>
+    <string name="header_clock_size_value">Clock size: %1$d sp</string>
+    <string name="header_date_beside_clock">Place date to the right of the clock</string>
     <string name="header_full_weekday">Use full weekday name</string>
     <string name="header_full_month">Use full month name</string>
     <string name="header_show_year">Show year</string>

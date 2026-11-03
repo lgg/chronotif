@@ -7,11 +7,13 @@ import android.content.Context
 import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.VelocityTracker
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.animation.DecelerateInterpolator
 import android.widget.EditText
@@ -59,6 +61,8 @@ class PanelView(
     private val scrim: View
     private val scroll: ScrollView
     private val content: LinearLayout
+    private val header: LinearLayout
+    private val clockRow: LinearLayout
     private val title: TextView
     private val clock: TextView
     private val date: TextView
@@ -101,12 +105,17 @@ class PanelView(
             fontFeatureSettings = "tnum"
         }
         date = Ui.text(context, 15f, pal.onScrimSecondary, bold = true, lines = 1)
-        val header = LinearLayout(context).apply {
+        clockRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(clock, Ui.lp(-2))
+        }
+        header = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             // Match the horizontal inset of notification and media cards.
             setPadding(dp(12), dp(8), dp(12), dp(4))
             addView(title)
-            addView(clock)
+            addView(clockRow)
             addView(date, Ui.lp().apply { topMargin = dp(2) })
         }
         val column = LinearLayout(context).apply {
@@ -185,9 +194,29 @@ class PanelView(
 
     /** Apply saved settings and the current device time, even when the date changes at midnight. */
     private fun refreshHeader() {
+        val showClock = Prefs.headerShowClock
+        val besideClock = showClock && Prefs.headerDateBesideClock
         title.visibility = if (Prefs.headerShowTitle) View.VISIBLE else View.GONE
-        clock.visibility = if (Prefs.headerShowClock) View.VISIBLE else View.GONE
-        if (Prefs.headerShowClock) clock.text = PanelHeaderFormat.time(context)
+        clockRow.visibility = if (showClock) View.VISIBLE else View.GONE
+        if (showClock) {
+            clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, Prefs.headerClockSizeSp.toFloat())
+            clock.text = PanelHeaderFormat.time(context)
+        }
+
+        // The same date view moves between the vertical header and the horizontal
+        // clock row. Never duplicate it: moving it only when layout mode changes
+        // preserves its accessibility semantics and prevents extra listeners.
+        if (besideClock && date.parent !== clockRow) {
+            (date.parent as? ViewGroup)?.removeView(date)
+            date.maxLines = 3
+            clockRow.addView(date, LinearLayout.LayoutParams(0, -2, 1f).apply {
+                marginStart = dp(12)
+            })
+        } else if (!besideClock && date.parent !== header) {
+            (date.parent as? ViewGroup)?.removeView(date)
+            date.maxLines = 1
+            header.addView(date, Ui.lp().apply { topMargin = dp(2) })
+        }
         date.text = PanelHeaderFormat.date()
     }
 

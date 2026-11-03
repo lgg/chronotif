@@ -11,6 +11,7 @@ import android.view.WindowInsets
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.SeekBar
 import android.widget.Switch
 import android.widget.TextView
 import app.chronotif.Prefs
@@ -60,6 +61,31 @@ class HeaderSettingsActivity : Activity() {
             Prefs.headerShowClock = it
         }
         body.addView(label(getString(R.string.header_clock_desc), 13f, pal.textSecondary))
+
+        val clockSizeLabel = label(
+            getString(R.string.header_clock_size_value, Prefs.headerClockSizeSp), 14f, pal.text
+        )
+        body.addView(clockSizeLabel, Ui.lp().apply { topMargin = dp(16) })
+        val clockSize = SeekBar(this).apply {
+            max = Prefs.HEADER_CLOCK_MAX_SP - Prefs.HEADER_CLOCK_MIN_SP
+            progress = Prefs.headerClockSizeSp - Prefs.HEADER_CLOCK_MIN_SP
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(bar: SeekBar, value: Int, fromUser: Boolean) {
+                    if (!fromUser) return
+                    val sp = (value + Prefs.HEADER_CLOCK_MIN_SP)
+                        .coerceIn(Prefs.HEADER_CLOCK_MIN_SP, Prefs.HEADER_CLOCK_MAX_SP)
+                    Prefs.headerClockSizeSp = sp
+                    clockSizeLabel.text = getString(R.string.header_clock_size_value, sp)
+                }
+                override fun onStartTrackingTouch(bar: SeekBar) {}
+                override fun onStopTrackingTouch(bar: SeekBar) {}
+            })
+        }
+        body.addView(clockSize, Ui.lp())
+
+        val dateBesideClock = toggle(
+            R.string.header_date_beside_clock, Prefs.headerDateBesideClock
+        ) { Prefs.headerDateBesideClock = it }
         toggle(R.string.header_full_weekday, Prefs.headerFullWeekday) { Prefs.headerFullWeekday = it }
         toggle(R.string.header_full_month, Prefs.headerFullMonth) { Prefs.headerFullMonth = it }
         toggle(R.string.header_show_year, Prefs.headerShowYear) { Prefs.headerShowYear = it }
@@ -74,6 +100,11 @@ class HeaderSettingsActivity : Activity() {
 
         fun refreshTimeControls() {
             val clockEnabled = showClock.isChecked
+            clockSize.isEnabled = clockEnabled
+            clockSize.alpha = if (clockEnabled) 1f else 0.45f
+            clockSizeLabel.alpha = if (clockEnabled) 1f else 0.45f
+            dateBesideClock.isEnabled = clockEnabled
+            dateBesideClock.alpha = if (clockEnabled) 1f else 0.45f
             useSystem.isEnabled = clockEnabled
             useSystem.alpha = if (clockEnabled) 1f else 0.45f
             manualFormat.isEnabled = clockEnabled && !useSystem.isChecked

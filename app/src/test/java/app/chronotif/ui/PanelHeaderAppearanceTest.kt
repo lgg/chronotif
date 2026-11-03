@@ -6,9 +6,11 @@ import android.app.Application
 import android.content.Context
 import android.view.View
 import android.view.ViewGroup
+import android.util.TypedValue
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.SeekBar
 import android.widget.Switch
 import android.widget.TextView
 import app.chronotif.Prefs
@@ -51,6 +53,8 @@ class PanelHeaderAppearanceTest {
         assertTrue(Prefs.headerFullMonth)
         assertTrue(Prefs.headerShowYear)
         assertTrue(Prefs.headerUseSystemTimeFormat)
+        assertEquals(76, Prefs.headerClockSizeSp)
+        assertFalse(Prefs.headerDateBesideClock)
     }
 
     @Test fun headerPreferencesPersistAcrossInitialization() {
@@ -61,15 +65,26 @@ class PanelHeaderAppearanceTest {
         Prefs.headerShowYear = false
         Prefs.headerUseSystemTimeFormat = false
         Prefs.headerOverride24Hour = false
+        Prefs.headerClockSizeSp = 48
+        Prefs.headerDateBesideClock = true
         Prefs.init(ctx)
         assertFalse(Prefs.headerShowTitle)
         assertTrue(Prefs.headerShowClock)
         assertFalse(Prefs.headerFullWeekday)
         assertFalse(Prefs.headerFullMonth)
         assertFalse(Prefs.headerShowYear)
+        assertEquals(48, Prefs.headerClockSizeSp)
+        assertTrue(Prefs.headerDateBesideClock)
         assertEquals("h:mm", PanelHeaderFormat.timePattern(true))
         Prefs.headerOverride24Hour = true
         assertEquals("HH:mm", PanelHeaderFormat.timePattern(false))
+    }
+
+    @Test fun clockSizeStaysInSupportedRange() {
+        Prefs.headerClockSizeSp = 1
+        assertEquals(Prefs.HEADER_CLOCK_MIN_SP, Prefs.headerClockSizeSp)
+        Prefs.headerClockSizeSp = 1000
+        assertEquals(Prefs.HEADER_CLOCK_MAX_SP, Prefs.headerClockSizeSp)
     }
 
     @Test fun systemTimeFormatWinsUnlessManuallyOverridden() {
@@ -111,9 +126,60 @@ class PanelHeaderAppearanceTest {
             val column = scroll.getChildAt(0) as LinearLayout
             val header = column.getChildAt(0) as LinearLayout
             assertEquals(View.GONE, header.getChildAt(0).visibility)
-            assertEquals(View.VISIBLE, header.getChildAt(1).visibility)
-            assertTrue((header.getChildAt(1) as TextView).text.isNotEmpty())
+            val row = header.getChildAt(1) as LinearLayout
+            assertEquals(View.VISIBLE, row.visibility)
+            assertTrue((row.getChildAt(0) as TextView).text.isNotEmpty())
             assertTrue((header.getChildAt(2) as TextView).text.isNotEmpty())
+        } finally {
+            activity.pause().stop().destroy()
+        }
+    }
+
+    @Test fun dateMovesBesideClockAndClockSizeApplies() {
+        Prefs.headerShowClock = true
+        Prefs.headerDateBesideClock = true
+        Prefs.headerClockSizeSp = 48
+        val activity = Robolectric.buildActivity(PanelActivity::class.java).setup()
+        try {
+            val root = activity.get().findViewById<ViewGroup>(android.R.id.content)
+                .getChildAt(0) as FrameLayout
+            val scroll = (0 until root.childCount).map { root.getChildAt(it) }
+                .filterIsInstance<ScrollView>().single()
+            val column = scroll.getChildAt(0) as LinearLayout
+            val header = column.getChildAt(0) as LinearLayout
+            val row = header.getChildAt(1) as LinearLayout
+            assertEquals(2, header.childCount)
+            assertEquals(2, row.childCount)
+            val clock = row.getChildAt(0) as TextView
+            val date = row.getChildAt(1) as TextView
+            assertEquals(48f * ctx.resources.displayMetrics.scaledDensity,
+                clock.textSize, 1.5f)
+            assertEquals(3, date.maxLines)
+            val params = date.layoutParams as LinearLayout.LayoutParams
+            assertEquals(0, params.width)
+            assertEquals(1f, params.weight, 0f)
+            assertTrue(date.text.isNotEmpty())
+        } finally {
+            activity.pause().stop().destroy()
+        }
+    }
+
+    @Test fun dateReturnsToTheLeftWhenClockHiddenEvenIfBesideEnabled() {
+        Prefs.headerShowClock = false
+        Prefs.headerDateBesideClock = true
+        val activity = Robolectric.buildActivity(PanelActivity::class.java).setup()
+        try {
+            val root = activity.get().findViewById<ViewGroup>(android.R.id.content)
+                .getChildAt(0) as FrameLayout
+            val scroll = (0 until root.childCount).map { root.getChildAt(it) }
+                .filterIsInstance<ScrollView>().single()
+            val column = scroll.getChildAt(0) as LinearLayout
+            val header = column.getChildAt(0) as LinearLayout
+            assertEquals(3, header.childCount)
+            assertEquals(View.GONE, header.getChildAt(1).visibility)
+            val date = header.getChildAt(2) as TextView
+            assertEquals(1, date.maxLines)
+            assertTrue(date.text.isNotEmpty())
         } finally {
             activity.pause().stop().destroy()
         }
@@ -128,14 +194,28 @@ class PanelHeaderAppearanceTest {
                 else if (view is ViewGroup) (0 until view.childCount).flatMap { switches(view.getChildAt(it)) }
                 else emptyList()
             val all = switches(root)
-            assertEquals(7, all.size)
+            assertEquals(8, all.size)
             val clock = all.single { it.text == ctx.getString(R.string.header_show_clock) }
             val system = all.single { it.text == ctx.getString(R.string.header_use_system_time) }
             val manual = all.single { it.text == ctx.getString(R.string.header_24_hour) }
+            val beside = all.single { it.text == ctx.getString(R.string.header_date_beside_clock) }
+            fun seekBars(view: View): List<SeekBar> =
+                if (view is SeekBar) listOf(view)
+                else if (view is ViewGroup) (0 until view.childCount).flatMap { seekBars(view.getChildAt(it)) }
+                else emptyList()
+            val size = seekBars(root).single()
             assertFalse(system.isEnabled)
             assertFalse(manual.isEnabled)
+            assertFalse(beside.isEnabled)
+            assertFalse(size.isEnabled)
             clock.isChecked = true
             assertTrue(system.isEnabled)
+            assertTrue(beside.isEnabled)
+            assertTrue(size.isEnabled)
+            beside.isChecked = true
+            assertTrue(Prefs.headerDateBesideClock)
+            size.progress = 48 - Prefs.HEADER_CLOCK_MIN_SP
+            assertEquals(48, Prefs.headerClockSizeSp)
             assertFalse(manual.isEnabled)
             system.isChecked = false
             assertTrue(manual.isEnabled)

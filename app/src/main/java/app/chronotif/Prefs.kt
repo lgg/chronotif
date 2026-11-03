@@ -12,6 +12,10 @@ object Prefs {
     const val LOCK_WHEN_NEW = 1
     const val LOCK_ALWAYS = 2
 
+    const val HEADER_CLOCK_MIN_SP = 32
+    const val HEADER_CLOCK_MAX_SP = 112
+    const val HEADER_CLOCK_DEFAULT_SP = 76
+
     private lateinit var sp: SharedPreferences
 
     fun init(context: Context) {
@@ -72,6 +76,19 @@ object Prefs {
     var headerShowClock: Boolean
         get() = sp.getBoolean("header_show_clock", false)
         set(v) = sp.edit().putBoolean("header_show_clock", v).apply()
+
+    /** Text size is expressed in scalable pixels, so Android font scaling still applies. */
+    var headerClockSizeSp: Int
+        get() = sp.getInt("header_clock_size_sp", HEADER_CLOCK_DEFAULT_SP)
+            .coerceIn(HEADER_CLOCK_MIN_SP, HEADER_CLOCK_MAX_SP)
+        set(v) = sp.edit().putInt(
+            "header_clock_size_sp", v.coerceIn(HEADER_CLOCK_MIN_SP, HEADER_CLOCK_MAX_SP)
+        ).apply()
+
+    /** Only positions the date beside visible large clock; otherwise it stays below the title. */
+    var headerDateBesideClock: Boolean
+        get() = sp.getBoolean("header_date_beside_clock", false)
+        set(v) = sp.edit().putBoolean("header_date_beside_clock", v).apply()
 
     var headerFullWeekday: Boolean
         get() = sp.getBoolean("header_full_weekday", true)
