@@ -84,7 +84,15 @@ jobs:
             throw 'Unexpected debug build configuration; refusing to change package'
           }
           $gradle = $gradle.Replace($fromId, 'applicationIdSuffix = ".dev"')
-          $gradle = $gradle.Replace($fromName, 'versionNameSuffix = "-test"')
+          $gradle = $gradle.Replace($fromName, ('versionNameSuffix = "-test.{0}"' -f $env:GITHUB_RUN_NUMBER))
+          $versionAnchor = 'versionCode = baseCode * 10000 + (nightlyBuild ?: 9999)'
+          if (([regex]::Matches($gradle, [regex]::Escape($versionAnchor))).Count -ne 1) {
+            throw 'Unexpected Gradle versionCode formula'
+          }
+          # A monotonic fork-only code on each Windows Test build. Keep source
+          # upstream's version untouched; use the same debug key and package.
+          $versionFormula = "versionCode = baseCode * 10000 + (nightlyBuild ?: 9999) + $env:GITHUB_RUN_NUMBER"
+          $gradle = $gradle.Replace($versionAnchor, $versionFormula)
           [System.IO.File]::WriteAllText((Join-Path $PWD $path), $gradle, ([System.Text.UTF8Encoding]::new($false)))
           $resDir = 'app\src\debug\res\values'
           New-Item -ItemType Directory -Path $resDir -Force | Out-Null
@@ -99,12 +107,12 @@ jobs:
             throw 'Debug APK was not produced'
           }
 
-      - name: Verify update compatibility with installed Chronotif Test / 7
+      - name: Verify update compatibility with installed Chronotif Test / 8
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $referenceTag = 'chronotif-test-40783160648-1'
+          $referenceTag = 'chronotif-test-41679449947-1'
           $referenceApk = "$referenceTag.apk"
           $oldDir = Join-Path $env:RUNNER_TEMP 'chronotif-previous-test'
           New-Item -ItemType Directory -Path $oldDir -Force | Out-Null
@@ -140,7 +148,7 @@ jobs:
           $oldDigest = [regex]::Match($oldSigner, $digestPattern)
           $newDigest = [regex]::Match($newSigner, $digestPattern)
           if (-not $oldDigest.Success -or -not $newDigest.Success -or $oldDigest.Groups[1].Value -ne $newDigest.Groups[1].Value) {
-            throw 'Signing certificate differs from Chronotif Test / 7: cannot update installed app'
+            throw 'Signing certificate differs from Chronotif Test / 8: cannot update installed app'
           }
           Write-Host "PACKAGE OK: app.chronotif.dev"
           Write-Host "VERSION OK: $oldCode -> $newCode"
@@ -158,7 +166,7 @@ jobs:
           Copy-Item 'app\build\outputs\apk\debug\app-debug.apk' $apk
           $hash = (Get-FileHash $apk -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  $apk" | Set-Content "$apk.sha256" -Encoding ASCII
-          & "$env:GH_CLI_EXE" release create $tag $apk "$apk.sha256" --target $sourceSha --title "Chronotif Test / 8 - Apple Music deleteIntent" --notes 'Fork-only Windows self-hosted test build; app.chronotif.dev installs alongside official Chronotif. Upgrade-compatible build of app.chronotif.dev from experiment/media-delete-intent. Previous Chronotif Test / 7 package, version and signing certificate are compared before publication. Built on the same Windows runner as previous Test releases.' --prerelease --latest=false
+          & "$env:GH_CLI_EXE" release create $tag $apk "$apk.sha256" --target $sourceSha --title "Chronotif Test / 9 - Media Swipe Fix" --notes 'Fork-only Windows self-hosted test build; app.chronotif.dev installs alongside official Chronotif. Upgrade-compatible build of app.chronotif.dev from experiment/media-delete-intent. Previous Chronotif Test / 8 package, version and signing certificate are compared before publication. Fixes gestures over media card children and stale Apple Music sessions. Built on the same Windows runner as previous Test releases.' --prerelease --latest=false
           if ($LASTEXITCODE -ne 0) { throw "Release creation failed with exit code $LASTEXITCODE" }
 
       - name: Save backup APK in Actions

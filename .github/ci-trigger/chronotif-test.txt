@@ -3,3 +3,4 @@ Source branch: experiment/media-delete-intent
 Reference signing certificate: Chronotif Test / 7 (chronotif-test-40783160648-1)
 Build requirements: same Windows runner, higher versionCode, identical signing certificate, publish APK to Releases only after checks pass.
 Retry: robust exact debug-suffix match, source experiment/media-delete-intent.
+Chronotif Test / 9: rebuild experiment/media-delete-intent after swipe gesture fixes, compare APK with Test / 8, dynamic versionCode. Source commit 2428cd9cf1ae88fda796f2ab4a8d9e2f2057714b.
