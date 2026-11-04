@@ -6,7 +6,6 @@ import android.app.Application
 import android.content.Context
 import android.view.View
 import android.view.ViewGroup
-import android.view.Gravity
 import android.util.TypedValue
 import android.widget.FrameLayout
 import android.widget.LinearLayout
@@ -171,35 +170,54 @@ class PanelHeaderAppearanceTest {
             val params = date.layoutParams as LinearLayout.LayoutParams
             assertEquals(0, params.width)
             assertEquals(1f, params.weight, 0f)
-            assertEquals(Gravity.CENTER_VERTICAL, params.gravity)
+            assertEquals(Prefs.HEADER_DATE_ALIGN_CENTER, (row as InkAlignedClockRow).verticalAlignment)
             assertTrue(date.text.isNotEmpty())
         } finally {
             activity.pause().stop().destroy()
         }
     }
 
-    @Test fun dateSideAlignmentAppliesToAllThreePositions() {
-        for ((value, expectedGravity) in listOf(
-            Prefs.HEADER_DATE_ALIGN_TOP to Gravity.TOP,
-            Prefs.HEADER_DATE_ALIGN_CENTER to Gravity.CENTER_VERTICAL,
-            Prefs.HEADER_DATE_ALIGN_BOTTOM to Gravity.BOTTOM,
-        )) {
-            Prefs.headerShowClock = true
-            Prefs.headerDateBesideClock = true
-            Prefs.headerDateVerticalAlignment = value
-            val controller = Robolectric.buildActivity(PanelActivity::class.java).setup()
-            try {
-                val root = controller.get().findViewById<ViewGroup>(android.R.id.content)
-                    .getChildAt(0) as FrameLayout
-                val scroll = (0 until root.childCount).map { root.getChildAt(it) }
-                    .filterIsInstance<ScrollView>().single()
-                val header = ((scroll.getChildAt(0) as LinearLayout).getChildAt(0)) as LinearLayout
-                val clockRow = header.getChildAt(1) as LinearLayout
-                val date = clockRow.getChildAt(1) as TextView
-                assertEquals(expectedGravity,
-                    (date.layoutParams as LinearLayout.LayoutParams).gravity)
-            } finally {
-                controller.pause().stop().destroy()
+    @Test fun visibleGlyphsAlignAtTopCenterAndBottomForClockSizes() {
+        // Regression for the screenshots: child gravity aligns TextView boxes but
+        // not their ink, whose ascent/descent varies dramatically with clock size.
+        for (sizeSp in listOf(32f, 48f, 76f, 112f)) {
+            for (widthPx in listOf(430, 820)) { // narrow layouts also wrap the date
+                for (alignment in listOf(
+                    Prefs.HEADER_DATE_ALIGN_TOP,
+                    Prefs.HEADER_DATE_ALIGN_CENTER,
+                    Prefs.HEADER_DATE_ALIGN_BOTTOM,
+                )) {
+                    val large = Ui.text(ctx, sizeSp, android.graphics.Color.WHITE, lines = 1)
+                        .apply { text = "05:41" }
+                    val small = Ui.text(ctx, 15f, android.graphics.Color.LTGRAY, bold = true, lines = 3)
+                        .apply { text = "Wednesday, November 4, 2026" }
+                    val row = InkAlignedClockRow(ctx, large, small).apply {
+                        verticalAlignment = alignment
+                        addView(large, LinearLayout.LayoutParams(-2, -2))
+                        addView(small, LinearLayout.LayoutParams(0, -2, 1f).apply {
+                            marginStart = 12
+                        })
+                    }
+                    row.measure(
+                        View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                    )
+                    row.layout(0, 0, widthPx, row.measuredHeight)
+                    val clockInk = requireNotNull(InkAlignedClockRow.visibleInk(large))
+                    val dateInk = requireNotNull(InkAlignedClockRow.visibleInk(small))
+                    val delta = when (alignment) {
+                        Prefs.HEADER_DATE_ALIGN_TOP -> clockInk.top - dateInk.top
+                        Prefs.HEADER_DATE_ALIGN_BOTTOM -> clockInk.bottom - dateInk.bottom
+                        else -> (clockInk.top + clockInk.bottom -
+                            dateInk.top - dateInk.bottom) / 2
+                    }
+                    assertTrue(
+                        "Ink misaligned size=$sizeSp width=$widthPx mode=$alignment: $delta px",
+                        kotlin.math.abs(delta) <= 1,
+                    )
+                    assertTrue("Date ink clipped above row", dateInk.top >= 0)
+                    assertTrue("Date ink clipped below row", dateInk.bottom <= row.height)
+                }
             }
         }
     }

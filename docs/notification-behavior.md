@@ -65,7 +65,9 @@ is available if the system option is turned off. The large clock size can be adj
 clock, allowing up to three lines for a long localized date; when the clock is hidden, the
 date automatically returns to its usual left-aligned position. When the date is beside
 the clock, its vertical alignment can be set to Top, Center (the existing default), or
-Bottom within the clock row. The alignment choice persists and has no effect when the
+Bottom against the **visible glyph bounds** of the clock, not TextView font boxes. This
+keeps the top, visual center or last line bottom aligned even at different clock font
+sizes and when the localized date wraps. The alignment choice persists and has no effect when the
 clock is hidden or the date is below it. All settings persist.
 The clock updates while the panel is visible using the panel's existing minute tick,
 including when the date changes at midnight.

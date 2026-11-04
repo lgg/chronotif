@@ -62,7 +62,7 @@ class PanelView(
     private val scroll: ScrollView
     private val content: LinearLayout
     private val header: LinearLayout
-    private val clockRow: LinearLayout
+    private val clockRow: InkAlignedClockRow
     private val title: TextView
     private val clock: TextView
     private val date: TextView
@@ -105,9 +105,7 @@ class PanelView(
             fontFeatureSettings = "tnum"
         }
         date = Ui.text(context, 15f, pal.onScrimSecondary, bold = true, lines = 1)
-        clockRow = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+        clockRow = InkAlignedClockRow(context, clock, date).apply {
             addView(clock, Ui.lp(-2))
         }
         header = LinearLayout(context).apply {
@@ -217,20 +215,8 @@ class PanelView(
             date.maxLines = 1
             header.addView(date, Ui.lp().apply { topMargin = dp(2) })
         }
-        if (besideClock) {
-            val dateGravity = when (Prefs.headerDateVerticalAlignment) {
-                Prefs.HEADER_DATE_ALIGN_TOP -> Gravity.TOP
-                Prefs.HEADER_DATE_ALIGN_BOTTOM -> Gravity.BOTTOM
-                else -> Gravity.CENTER_VERTICAL
-            }
-            val params = date.layoutParams as LinearLayout.LayoutParams
-            if (params.gravity != dateGravity) {
-                // Child-specific gravity overrides clockRow's centered default.
-                // Apply it even when the date is already in the same row.
-                params.gravity = dateGravity
-                date.layoutParams = params
-            }
-        }
+        // Align visible glyph edges, not the unequal font boxes of large and small text.
+        clockRow.verticalAlignment = Prefs.headerDateVerticalAlignment
         date.text = PanelHeaderFormat.date()
     }
 
