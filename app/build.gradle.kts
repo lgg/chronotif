@@ -11,6 +11,10 @@ val nightlyBuild = providers.gradleProperty("nightlyBuild").orNull?.toInt()?.als
     require(it in 1..9998) { "nightlyBuild must be between 1 and 9998" }
 }
 
+// Build-only branch: a separate Media Test app, never part of the upstream PR.
+val mediaTestBuild = providers.gradleProperty("mediaTestBuild").orNull?.toIntOrNull() ?: 0
+require(mediaTestBuild in 0..9998) { "mediaTestBuild must be between 0 and 9998" }
+
 android {
     namespace = "app.chronotif"
     compileSdk = 36
@@ -22,7 +26,7 @@ android {
         // This is the next stable version. CI adds the nightly suffix and build number.
         versionName = "0.2.5"
         val baseCode = versionName!!.split('.').map(String::toInt).fold(0) { acc, p -> acc * 100 + p }
-        versionCode = baseCode * 10000 + (nightlyBuild ?: 9999)
+        versionCode = baseCode * 10000 + (nightlyBuild ?: 9999) + mediaTestBuild
         if (nightlyBuild != null) versionName = "$versionName-nightly.$nightlyBuild"
         buildConfigField("boolean", "NIGHTLY", (nightlyBuild != null).toString())
     }
@@ -41,8 +45,8 @@ android {
     buildTypes {
         // Debug installs next to stable/nightly instead of colliding with their signing key.
         debug {
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
+            applicationIdSuffix = ".mediatest"
+            versionNameSuffix = "-media-test.$mediaTestBuild"
         }
         release {
             isMinifyEnabled = true
