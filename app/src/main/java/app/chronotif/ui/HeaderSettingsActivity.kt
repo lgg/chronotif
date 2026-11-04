@@ -10,6 +10,8 @@ import android.view.View
 import android.view.WindowInsets
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.Switch
@@ -86,6 +88,38 @@ class HeaderSettingsActivity : Activity() {
         val dateBesideClock = toggle(
             R.string.header_date_beside_clock, Prefs.headerDateBesideClock
         ) { Prefs.headerDateBesideClock = it }
+
+        val alignmentLabel = label(
+            getString(R.string.header_date_vertical_alignment), 14f, pal.text
+        )
+        body.addView(alignmentLabel, Ui.lp().apply { topMargin = dp(12) })
+        val alignmentGroup = RadioGroup(this).apply {
+            orientation = RadioGroup.HORIZONTAL
+        }
+        val alignmentOptions = listOf(
+            Prefs.HEADER_DATE_ALIGN_TOP to R.string.header_align_top,
+            Prefs.HEADER_DATE_ALIGN_CENTER to R.string.header_align_center,
+            Prefs.HEADER_DATE_ALIGN_BOTTOM to R.string.header_align_bottom,
+        )
+        val alignmentButtons = alignmentOptions.map { (value, textId) ->
+            val radio = RadioButton(this).apply {
+                id = View.generateViewId()
+                setText(textId)
+                setTextColor(pal.text)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            }
+            alignmentGroup.addView(radio)
+            value to radio
+        }
+        alignmentButtons.first { it.first == Prefs.headerDateVerticalAlignment }
+            .second.let { alignmentGroup.check(it.id) }
+        alignmentGroup.setOnCheckedChangeListener { _, checkedId ->
+            alignmentButtons.firstOrNull { it.second.id == checkedId }?.let {
+                Prefs.headerDateVerticalAlignment = it.first
+            }
+        }
+        body.addView(alignmentGroup, Ui.lp())
+
         toggle(R.string.header_full_weekday, Prefs.headerFullWeekday) { Prefs.headerFullWeekday = it }
         toggle(R.string.header_full_month, Prefs.headerFullMonth) { Prefs.headerFullMonth = it }
         toggle(R.string.header_show_year, Prefs.headerShowYear) { Prefs.headerShowYear = it }
@@ -105,6 +139,11 @@ class HeaderSettingsActivity : Activity() {
             clockSizeLabel.alpha = if (clockEnabled) 1f else 0.45f
             dateBesideClock.isEnabled = clockEnabled
             dateBesideClock.alpha = if (clockEnabled) 1f else 0.45f
+            val alignEnabled = clockEnabled && dateBesideClock.isChecked
+            alignmentLabel.alpha = if (alignEnabled) 1f else 0.45f
+            alignmentGroup.isEnabled = alignEnabled
+            alignmentGroup.alpha = if (alignEnabled) 1f else 0.45f
+            alignmentButtons.forEach { (_, radio) -> radio.isEnabled = alignEnabled }
             useSystem.isEnabled = clockEnabled
             useSystem.alpha = if (clockEnabled) 1f else 0.45f
             manualFormat.isEnabled = clockEnabled && !useSystem.isChecked
@@ -116,6 +155,10 @@ class HeaderSettingsActivity : Activity() {
         }
         useSystem.setOnCheckedChangeListener { _, checked ->
             Prefs.headerUseSystemTimeFormat = checked
+            refreshTimeControls()
+        }
+        dateBesideClock.setOnCheckedChangeListener { _, checked ->
+            Prefs.headerDateBesideClock = checked
             refreshTimeControls()
         }
         refreshTimeControls()

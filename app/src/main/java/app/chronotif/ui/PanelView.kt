@@ -217,6 +217,20 @@ class PanelView(
             date.maxLines = 1
             header.addView(date, Ui.lp().apply { topMargin = dp(2) })
         }
+        if (besideClock) {
+            val dateGravity = when (Prefs.headerDateVerticalAlignment) {
+                Prefs.HEADER_DATE_ALIGN_TOP -> Gravity.TOP
+                Prefs.HEADER_DATE_ALIGN_BOTTOM -> Gravity.BOTTOM
+                else -> Gravity.CENTER_VERTICAL
+            }
+            val params = date.layoutParams as LinearLayout.LayoutParams
+            if (params.gravity != dateGravity) {
+                // Child-specific gravity overrides clockRow's centered default.
+                // Apply it even when the date is already in the same row.
+                params.gravity = dateGravity
+                date.layoutParams = params
+            }
+        }
         date.text = PanelHeaderFormat.date()
     }
 

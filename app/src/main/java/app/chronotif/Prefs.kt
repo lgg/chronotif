@@ -16,6 +16,10 @@ object Prefs {
     const val HEADER_CLOCK_MAX_SP = 112
     const val HEADER_CLOCK_DEFAULT_SP = 76
 
+    const val HEADER_DATE_ALIGN_TOP = 0
+    const val HEADER_DATE_ALIGN_CENTER = 1
+    const val HEADER_DATE_ALIGN_BOTTOM = 2
+
     private lateinit var sp: SharedPreferences
 
     fun init(context: Context) {
@@ -89,6 +93,15 @@ object Prefs {
     var headerDateBesideClock: Boolean
         get() = sp.getBoolean("header_date_beside_clock", false)
         set(v) = sp.edit().putBoolean("header_date_beside_clock", v).apply()
+
+    /** Date positioning within the clock row; the existing centered layout is the default. */
+    var headerDateVerticalAlignment: Int
+        get() = sp.getInt("header_date_vertical_alignment", HEADER_DATE_ALIGN_CENTER)
+            .coerceIn(HEADER_DATE_ALIGN_TOP, HEADER_DATE_ALIGN_BOTTOM)
+        set(v) = sp.edit().putInt(
+            "header_date_vertical_alignment",
+            v.coerceIn(HEADER_DATE_ALIGN_TOP, HEADER_DATE_ALIGN_BOTTOM)
+        ).apply()
 
     var headerFullWeekday: Boolean
         get() = sp.getBoolean("header_full_weekday", true)

@@ -63,7 +63,10 @@ is enabled it uses Android's current 12/24-hour time preference; a manual 12/24-
 is available if the system option is turned off. The large clock size can be adjusted from
 32 to 112 sp (76 sp by default). A separate toggle moves the date to the right of the large
 clock, allowing up to three lines for a long localized date; when the clock is hidden, the
-date automatically returns to its usual left-aligned position. Both settings persist.
+date automatically returns to its usual left-aligned position. When the date is beside
+the clock, its vertical alignment can be set to Top, Center (the existing default), or
+Bottom within the clock row. The alignment choice persists and has no effect when the
+clock is hidden or the date is below it. All settings persist.
 The clock updates while the panel is visible using the panel's existing minute tick,
 including when the date changes at midnight.
 No live preview or additional background component is required. These settings affect only

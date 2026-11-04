@@ -6,9 +6,12 @@ import android.app.Application
 import android.content.Context
 import android.view.View
 import android.view.ViewGroup
+import android.view.Gravity
 import android.util.TypedValue
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.Switch
@@ -55,6 +58,7 @@ class PanelHeaderAppearanceTest {
         assertTrue(Prefs.headerUseSystemTimeFormat)
         assertEquals(76, Prefs.headerClockSizeSp)
         assertFalse(Prefs.headerDateBesideClock)
+        assertEquals(Prefs.HEADER_DATE_ALIGN_CENTER, Prefs.headerDateVerticalAlignment)
     }
 
     @Test fun headerPreferencesPersistAcrossInitialization() {
@@ -67,6 +71,7 @@ class PanelHeaderAppearanceTest {
         Prefs.headerOverride24Hour = false
         Prefs.headerClockSizeSp = 48
         Prefs.headerDateBesideClock = true
+        Prefs.headerDateVerticalAlignment = Prefs.HEADER_DATE_ALIGN_BOTTOM
         Prefs.init(ctx)
         assertFalse(Prefs.headerShowTitle)
         assertTrue(Prefs.headerShowClock)
@@ -75,6 +80,7 @@ class PanelHeaderAppearanceTest {
         assertFalse(Prefs.headerShowYear)
         assertEquals(48, Prefs.headerClockSizeSp)
         assertTrue(Prefs.headerDateBesideClock)
+        assertEquals(Prefs.HEADER_DATE_ALIGN_BOTTOM, Prefs.headerDateVerticalAlignment)
         assertEquals("h:mm", PanelHeaderFormat.timePattern(true))
         Prefs.headerOverride24Hour = true
         assertEquals("HH:mm", PanelHeaderFormat.timePattern(false))
@@ -85,6 +91,13 @@ class PanelHeaderAppearanceTest {
         assertEquals(Prefs.HEADER_CLOCK_MIN_SP, Prefs.headerClockSizeSp)
         Prefs.headerClockSizeSp = 1000
         assertEquals(Prefs.HEADER_CLOCK_MAX_SP, Prefs.headerClockSizeSp)
+    }
+
+    @Test fun dateAlignmentClampsToKnownValues() {
+        Prefs.headerDateVerticalAlignment = -1
+        assertEquals(Prefs.HEADER_DATE_ALIGN_TOP, Prefs.headerDateVerticalAlignment)
+        Prefs.headerDateVerticalAlignment = 99
+        assertEquals(Prefs.HEADER_DATE_ALIGN_BOTTOM, Prefs.headerDateVerticalAlignment)
     }
 
     @Test fun systemTimeFormatWinsUnlessManuallyOverridden() {
@@ -158,15 +171,43 @@ class PanelHeaderAppearanceTest {
             val params = date.layoutParams as LinearLayout.LayoutParams
             assertEquals(0, params.width)
             assertEquals(1f, params.weight, 0f)
+            assertEquals(Gravity.CENTER_VERTICAL, params.gravity)
             assertTrue(date.text.isNotEmpty())
         } finally {
             activity.pause().stop().destroy()
         }
     }
 
+    @Test fun dateSideAlignmentAppliesToAllThreePositions() {
+        for ((value, expectedGravity) in listOf(
+            Prefs.HEADER_DATE_ALIGN_TOP to Gravity.TOP,
+            Prefs.HEADER_DATE_ALIGN_CENTER to Gravity.CENTER_VERTICAL,
+            Prefs.HEADER_DATE_ALIGN_BOTTOM to Gravity.BOTTOM,
+        )) {
+            Prefs.headerShowClock = true
+            Prefs.headerDateBesideClock = true
+            Prefs.headerDateVerticalAlignment = value
+            val controller = Robolectric.buildActivity(PanelActivity::class.java).setup()
+            try {
+                val root = controller.get().findViewById<ViewGroup>(android.R.id.content)
+                    .getChildAt(0) as FrameLayout
+                val scroll = (0 until root.childCount).map { root.getChildAt(it) }
+                    .filterIsInstance<ScrollView>().single()
+                val header = ((scroll.getChildAt(0) as LinearLayout).getChildAt(0)) as LinearLayout
+                val clockRow = header.getChildAt(1) as LinearLayout
+                val date = clockRow.getChildAt(1) as TextView
+                assertEquals(expectedGravity,
+                    (date.layoutParams as LinearLayout.LayoutParams).gravity)
+            } finally {
+                controller.pause().stop().destroy()
+            }
+        }
+    }
+
     @Test fun dateReturnsToTheLeftWhenClockHiddenEvenIfBesideEnabled() {
         Prefs.headerShowClock = false
         Prefs.headerDateBesideClock = true
+        Prefs.headerDateVerticalAlignment = Prefs.HEADER_DATE_ALIGN_BOTTOM
         val activity = Robolectric.buildActivity(PanelActivity::class.java).setup()
         try {
             val root = activity.get().findViewById<ViewGroup>(android.R.id.content)
@@ -208,12 +249,33 @@ class PanelHeaderAppearanceTest {
             assertFalse(manual.isEnabled)
             assertFalse(beside.isEnabled)
             assertFalse(size.isEnabled)
+            val alignmentGroups = mutableListOf<RadioGroup>()
+            fun findGroups(view: View) {
+                if (view is RadioGroup) alignmentGroups += view
+                if (view is ViewGroup) (0 until view.childCount).forEach {
+                    findGroups(view.getChildAt(it))
+                }
+            }
+            findGroups(root)
+            val alignment = alignmentGroups.single()
+            val radios = (0 until alignment.childCount).map {
+                alignment.getChildAt(it) as RadioButton
+            }
+            assertTrue(radios.none { it.isEnabled })
             clock.isChecked = true
             assertTrue(system.isEnabled)
             assertTrue(beside.isEnabled)
             assertTrue(size.isEnabled)
+            assertTrue(radios.none { it.isEnabled })
             beside.isChecked = true
             assertTrue(Prefs.headerDateBesideClock)
+            assertTrue(radios.all { it.isEnabled })
+            assertEquals(3, radios.size)
+            radios[2].isChecked = true
+            assertEquals(Prefs.HEADER_DATE_ALIGN_BOTTOM, Prefs.headerDateVerticalAlignment)
+            beside.isChecked = false
+            assertTrue(radios.none { it.isEnabled })
+            beside.isChecked = true
             size.progress = 48 - Prefs.HEADER_CLOCK_MIN_SP
             assertEquals(48, Prefs.headerClockSizeSp)
             assertFalse(manual.isEnabled)
