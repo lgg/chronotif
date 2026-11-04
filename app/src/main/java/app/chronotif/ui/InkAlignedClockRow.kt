@@ -3,20 +3,30 @@
 package app.chronotif.ui
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Rect
 import android.view.Gravity
 import android.widget.LinearLayout
 import android.widget.TextView
 import app.chronotif.Prefs
+import kotlin.math.ceil
+import kotlin.math.floor
+import kotlin.math.max
+import kotlin.math.min
 
 /**
- * Position the date relative to the actual painted clock digits, not the vertical
- * bounds of their TextViews. Large clock fonts and small date fonts reserve very
- * different top/bottom areas even with includeFontPadding=false; native Gravity.TOP
- * and Gravity.BOTTOM therefore appear visually offset as the clock size changes.
+ * Align the rendered first date glyph with the last numeric clock glyph.
  *
- * This is an ordinary horizontal LinearLayout; only the date's Y position changes
- * after layout, and the rest of the header retains its normal measurement.
+ * FontMetrics, TextView bounds and even Paint.getTextBounds() for a whole
+ * sentence are NOT the visible W/1 edges: descenders in "Wednesday" and font
+ * padding change those bounds. The previous implementation produced offsets
+ * of ~50px at large font sizes on HyperOS. We sample the actual pixels drawn
+ * by each TextView, restricted to the relevant glyph's horizontal advance.
+ *
+ * This only runs when this small header lays out (not every animation frame).
+ * Both TextViews remain regular accessible, localized views.
  */
 internal class InkAlignedClockRow(
     context: Context,
@@ -33,9 +43,7 @@ internal class InkAlignedClockRow(
 
     init {
         orientation = HORIZONTAL
-        gravity = Gravity.CENTER_VERTICAL
-        // Font boxes may shift slightly beyond their measured rows; actual glyphs
-        // remain within the clock's visible ink bounds.
+        gravity = Gravity.TOP
         clipChildren = false
         clipToPadding = false
     }
@@ -43,48 +51,80 @@ internal class InkAlignedClockRow(
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
         if (date.parent !== this || clock.visibility != VISIBLE || date.visibility != VISIBLE) return
-        val a = visibleInk(clock) ?: return
-        val b = visibleInk(date) ?: return
+
+        val clockInk = referenceGlyphInk(clock, isClock = true) ?: return
+        val dateInk = referenceGlyphInk(date, isClock = false) ?: return
+        // Ink ranges are inclusive pixel coordinates in the parent row.
         val delta = when (verticalAlignment) {
-            Prefs.HEADER_DATE_ALIGN_TOP -> a.top - b.top
-            Prefs.HEADER_DATE_ALIGN_BOTTOM -> a.bottom - b.bottom
-            else -> (a.top + a.bottom - b.top - b.bottom) / 2
+            Prefs.HEADER_DATE_ALIGN_TOP -> clockInk.first - dateInk.first
+            Prefs.HEADER_DATE_ALIGN_BOTTOM -> clockInk.last - dateInk.last
+            else -> ((clockInk.first + clockInk.last) -
+                (dateInk.first + dateInk.last)) / 2
         }
         if (delta != 0) date.offsetTopAndBottom(delta)
     }
 
     companion object {
         /**
-         * Vertical ink bounds in the row's coordinates, including all visible
-         * lines and their actual baselines. Works for both single-line digits and
-         * multiline date strings.
+         * Return the actually painted vertical pixel range of the clock's last
+         * digit (e.g. '1' in 05:41), or the date's FIRST glyph (e.g. 'W').
+         * Pixel sampling avoids estimating the wrong box for other glyphs.
          */
-        internal fun visibleInk(view: TextView): Rect? {
-            val layout = view.layout ?: return null
+        internal fun referenceGlyphInk(view: TextView, isClock: Boolean): IntRange? {
             val text = view.text.toString()
-            if (text.isEmpty() || layout.lineCount == 0) return null
-            val ink = Rect()
-            val lineBounds = Rect()
-            var found = false
-            val firstLineBaseline = layout.getLineBaseline(0)
-            for (line in 0 until layout.lineCount) {
-                var start = layout.getLineStart(line).coerceIn(0, text.length)
-                var end = layout.getLineEnd(line).coerceIn(start, text.length)
-                while (start < end && text[start].isWhitespace()) start++
-                while (end > start && text[end - 1].isWhitespace()) end--
-                if (end == start) continue
-                view.paint.getTextBounds(text, start, end, lineBounds)
-                val baseline = view.top + view.baseline +
-                    layout.getLineBaseline(line) - firstLineBaseline
-                if (!found) {
-                    ink.set(0, baseline + lineBounds.top, 0, baseline + lineBounds.bottom)
-                    found = true
-                } else {
-                    ink.top = minOf(ink.top, baseline + lineBounds.top)
-                    ink.bottom = maxOf(ink.bottom, baseline + lineBounds.bottom)
-                }
+            if (text.isEmpty() || view.width <= 0 || view.height <= 0) return null
+            val index = if (isClock) text.indexOfLast { it.isDigit() }
+                else text.indexOfFirst { !it.isWhitespace() }
+            if (index < 0) return null
+            val layout = view.layout ?: return null
+            val line = layout.getLineForOffset(index)
+            val lineStart = layout.getLineStart(line)
+            val lineEnd = layout.getLineEnd(line)
+            if (index < lineStart || index >= lineEnd) return null
+
+            // The glyph advance comes from the real text layout, including
+            // font features, letter spacing, and RTL handling.
+            val x0 = view.totalPaddingLeft + layout.getPrimaryHorizontal(index)
+            val x1 = view.totalPaddingLeft + layout.getPrimaryHorizontal(index + 1)
+            val glyphLeft = floor(min(x0, x1)).toInt().coerceIn(0, view.width)
+            val glyphRight = ceil(max(x0, x1)).toInt().coerceIn(0, view.width)
+            val width = glyphRight - glyphLeft
+            if (width <= 0) return fallbackGlyphInk(view, text, index)
+
+            // ARGB_8888 is necessary here because ALPHA_8 getPixels() has
+            // device-dependent channel behavior. Draw on a transparent bitmap.
+            val bitmap = try {
+                Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+            } catch (_: IllegalArgumentException) {
+                return fallbackGlyphInk(view, text, index)
+            } catch (_: OutOfMemoryError) {
+                return fallbackGlyphInk(view, text, index)
             }
-            return if (found) ink else null
+            try {
+                view.draw(Canvas(bitmap))
+                val linePixels = IntArray(width)
+                var first = -1
+                var last = -1
+                for (y in 0 until view.height) {
+                    bitmap.getPixels(linePixels, 0, width, glyphLeft, y, width, 1)
+                    if (linePixels.any { Color.alpha(it) >= 48 }) {
+                        if (first < 0) first = y
+                        last = y
+                    }
+                }
+                if (first >= 0) return (view.top + first)..(view.top + last)
+            } finally {
+                bitmap.recycle()
+            }
+            return fallbackGlyphInk(view, text, index)
+        }
+
+        /** Fallback when a view cannot be software-rendered (e.g. low memory). */
+        private fun fallbackGlyphInk(view: TextView, text: String, index: Int): IntRange {
+            val b = Rect()
+            view.paint.getTextBounds(text, index, index + 1, b)
+            val baseline = view.top + view.baseline
+            return (baseline + b.top)..(baseline + b.bottom - 1)
         }
     }
 }

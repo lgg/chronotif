@@ -177,20 +177,25 @@ class PanelHeaderAppearanceTest {
         }
     }
 
-    @Test fun visibleGlyphsAlignAtTopCenterAndBottomForClockSizes() {
-        // Regression for the screenshots: child gravity aligns TextView boxes but
-        // not their ink, whose ascent/descent varies dramatically with clock size.
+    @Test fun firstDateGlyphAlignsWithLastDigitAtAnyClockSize() {
+        // Screenshot regression: align 'W' with '1', NOT the whole text box,
+        // which contains lower descenders (Wednesday) and different font padding.
         for (sizeSp in listOf(32f, 48f, 76f, 112f)) {
-            for (widthPx in listOf(430, 820)) { // narrow layouts also wrap the date
+            for (widthPx in listOf(430, 820, 1120)) {
                 for (alignment in listOf(
                     Prefs.HEADER_DATE_ALIGN_TOP,
                     Prefs.HEADER_DATE_ALIGN_CENTER,
                     Prefs.HEADER_DATE_ALIGN_BOTTOM,
                 )) {
                     val large = Ui.text(ctx, sizeSp, android.graphics.Color.WHITE, lines = 1)
-                        .apply { text = "05:41" }
-                    val small = Ui.text(ctx, 15f, android.graphics.Color.LTGRAY, bold = true, lines = 3)
-                        .apply { text = "Wednesday, November 4, 2026" }
+                        .apply {
+                            typeface = android.graphics.Typeface.create(
+                                android.graphics.Typeface.DEFAULT, 500, false)
+                            fontFeatureSettings = "tnum"
+                            text = "05:41"
+                        }
+                    val small = Ui.text(ctx, 15f, 0xB3FFFFFF.toInt(), bold = true, lines = 3)
+                        .apply { text = "Wednesday, Nov 4" }
                     val row = InkAlignedClockRow(ctx, large, small).apply {
                         verticalAlignment = alignment
                         addView(large, LinearLayout.LayoutParams(-2, -2))
@@ -203,23 +208,43 @@ class PanelHeaderAppearanceTest {
                         View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
                     )
                     row.layout(0, 0, widthPx, row.measuredHeight)
-                    val clockInk = requireNotNull(InkAlignedClockRow.visibleInk(large))
-                    val dateInk = requireNotNull(InkAlignedClockRow.visibleInk(small))
-                    val delta = when (alignment) {
-                        Prefs.HEADER_DATE_ALIGN_TOP -> clockInk.top - dateInk.top
-                        Prefs.HEADER_DATE_ALIGN_BOTTOM -> clockInk.bottom - dateInk.bottom
-                        else -> (clockInk.top + clockInk.bottom -
-                            dateInk.top - dateInk.bottom) / 2
+                    if (small.width == 0) continue // an oversized clock fills narrow row
+                    val clockPixels = requireNotNull(
+                        InkAlignedClockRow.referenceGlyphInk(large, true))
+                    val datePixels = requireNotNull(
+                        InkAlignedClockRow.referenceGlyphInk(small, false))
+                    val diff = when (alignment) {
+                        Prefs.HEADER_DATE_ALIGN_TOP -> clockPixels.first - datePixels.first
+                        Prefs.HEADER_DATE_ALIGN_BOTTOM -> clockPixels.last - datePixels.last
+                        else -> (clockPixels.first + clockPixels.last -
+                            datePixels.first - datePixels.last) / 2
                     }
                     assertTrue(
-                        "Ink misaligned size=$sizeSp width=$widthPx mode=$alignment: $delta px",
-                        kotlin.math.abs(delta) <= 1,
+                        "W/1 not aligned: $sizeSp sp, width=$widthPx, mode=$alignment, diff=$diff",
+                        kotlin.math.abs(diff) <= 1,
                     )
-                    assertTrue("Date ink clipped above row", dateInk.top >= 0)
-                    assertTrue("Date ink clipped below row", dateInk.bottom <= row.height)
                 }
             }
         }
+    }
+
+    @Test fun alignmentUsesLeadingWNotDescendersInEntireDate() {
+        val large = Ui.text(ctx, 100f, android.graphics.Color.WHITE, lines = 1)
+            .apply { text = "05:41" }
+        val small = Ui.text(ctx, 15f, 0xB3FFFFFF.toInt(), bold = true, lines = 1)
+            .apply { text = "Wednesday, Nov 4" }
+        val row = InkAlignedClockRow(ctx, large, small).apply {
+            verticalAlignment = Prefs.HEADER_DATE_ALIGN_BOTTOM
+            addView(large, LinearLayout.LayoutParams(-2, -2))
+            addView(small, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = 12 })
+        }
+        row.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        row.layout(0, 0, 1000, row.measuredHeight)
+        val clockInk = requireNotNull(InkAlignedClockRow.referenceGlyphInk(large, true))
+        val wInk = requireNotNull(InkAlignedClockRow.referenceGlyphInk(small, false))
+        assertEquals("The W and last clock digit must share the bottom pixel",
+            clockInk.last, wInk.last)
     }
 
     @Test fun dateReturnsToTheLeftWhenClockHiddenEvenIfBesideEnabled() {
