@@ -1,0 +1,123 @@
+name: Chronotif Media Test prerelease
+
+# Isolated tester build: NEVER included in nagarete/chronotif PR #40.
+on:
+  push:
+    branches: [build/media-test]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  media-test:
+    if: github.repository == 'lgg/chronotif' && github.ref == 'refs/heads/build/media-test'
+    runs-on: [self-hosted, Windows, X64]
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: powershell
+    env:
+      ANDROID_HOME: 'D:\Android\Sdk'
+      JAVA_HOME: 'C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot'
+      GRADLE_USER_HOME: 'D:\Android\gradle-chronotif'
+      GH_CLI_EXE: 'C:\Program Files\GitHub CLI\gh.exe'
+      SOURCE_SHA: 'daf5ee76dd11bc73817b6b926adef3c26a47e639'
+    steps:
+      - name: Checkout isolated media-test branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify media feature source and no header changes
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & git merge-base --is-ancestor $env:SOURCE_SHA HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'PR #40 source SHA is not an ancestor' }
+          $allowed = @(
+            '.github/workflows/media-test-release.yml',
+            'app/build.gradle.kts',
+            'app/src/debug/res/values/strings.xml'
+          )
+          $actual = @(& git diff --name-only $env:SOURCE_SHA HEAD)
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect build-only changes' }
+          $unexpected = @($actual | Where-Object { $_ -notin $allowed })
+          if ($unexpected.Count -ne 0) {
+            throw "Unexpected changes relative to the audited PR source: $($unexpected -join ', ')"
+          }
+          if ($actual.Count -ne 3) { throw 'The isolated build must contain exactly three build-only files' }
+          Write-Host "AUDITED SOURCE: $env:SOURCE_SHA"
+          Write-Host "BUILD-ONLY FILES: $($actual -join ', ')"
+
+      - name: Verify installed Windows SDK, JDK and GitHub CLI
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($p in @(
+            "$env:JAVA_HOME\bin\java.exe",
+            "$env:ANDROID_HOME\platforms\android-36\android.jar",
+            "$env:ANDROID_HOME\build-tools\36.0.0\aapt2.exe",
+            "$env:ANDROID_HOME\build-tools\36.0.0\apksigner.bat",
+            "$env:GH_CLI_EXE",
+            ".\gradlew.bat"
+          )) {
+            if (-not (Test-Path -LiteralPath $p)) { throw "Required tool missing: $p" }
+          }
+
+      - name: Run unit tests, lint and build Media Test APK
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\gradlew.bat --no-daemon "-PmediaTestBuild=$env:GITHUB_RUN_NUMBER" testDebugUnitTest lintDebug assembleDebug
+          if ($LASTEXITCODE -ne 0) { throw "Gradle failed: $LASTEXITCODE" }
+          if (-not (Test-Path 'app\build\outputs\apk\debug\app-debug.apk')) {
+            throw 'Media Test APK was not built'
+          }
+
+      - name: Verify separate app name, package and signing certificate
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $apk = 'app\build\outputs\apk\debug\app-debug.apk'
+          $aapt = "$env:ANDROID_HOME\build-tools\36.0.0\aapt2.exe"
+          $signer = "$env:ANDROID_HOME\build-tools\36.0.0\apksigner.bat"
+          $badging = (& $aapt dump badging $apk | Out-String)
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect APK package and label' }
+          if ($badging -notmatch "package: name='app\.chronotif\.mediatest'") {
+            throw "Wrong applicationId. Expected app.chronotif.mediatest: $badging"
+          }
+          if ($badging -notmatch "application-label:'Chronotif Media Test'") {
+            throw "Wrong launcher label. Expected Chronotif Media Test: $badging"
+          }
+          $signature = (& $signer verify --print-certs $apk | Out-String)
+          if ($LASTEXITCODE -ne 0 -or $signature -notmatch '(?im)Signer #1 certificate SHA-256 digest:') {
+            throw 'APK signing verification failed'
+          }
+          Write-Host 'PACKAGE: app.chronotif.mediatest'
+          Write-Host 'LABEL: Chronotif Media Test'
+          Write-Host $signature
+
+      - name: Publish isolated Media Test prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sha = (& git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0) { throw 'Could not determine built commit' }
+          $tag = "chronotif-media-test-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $apk = "$tag.apk"
+          Copy-Item 'app\build\outputs\apk\debug\app-debug.apk' $apk
+          $hash = (Get-FileHash -LiteralPath $apk -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $apk" | Set-Content "$apk.sha256" -Encoding ASCII
+          $notes = "Media Test build from upstream PR #40 commit $env:SOURCE_SHA. Installs separately as app.chronotif.mediatest, launcher name Chronotif Media Test; it does not replace Chronotif or Chronotif Test. Includes tested inactive media swipe-to-dismiss, clearable regression fixes and locale-independent action hints. Unit tests and lint must pass before publishing. The header experiment is not included."
+          $title = "Chronotif Media Test / $env:GITHUB_RUN_NUMBER"
+          & "$env:GH_CLI_EXE" release create $tag $apk "$apk.sha256" --repo lgg/chronotif --target $sha --title $title --notes $notes --prerelease --latest=false
+          if ($LASTEXITCODE -ne 0) { throw "GitHub prerelease creation failed: $LASTEXITCODE" }
+          Write-Host "RELEASE: https://github.com/lgg/chronotif/releases/tag/$tag"
+
+      - name: Save Media Test APK as a CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chronotif-media-test-${{ github.run_number }}-${{ github.run_attempt }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+          if-no-files-found: error
