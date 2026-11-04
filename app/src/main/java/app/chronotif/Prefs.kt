@@ -72,14 +72,6 @@ object Prefs {
         get() = sp.getBoolean("lock_hide_content", false)
         set(v) = sp.edit().putBoolean("lock_hide_content", v).apply()
 
-    /**
-     * Opt-in bulk deletion when swiping a collapsed stack. Normally the gesture
-     * dismisses just its top notification/message; explicit × buttons still clear all.
-     */
-    var swipeClearsEntireStack: Boolean
-        get() = sp.getBoolean("swipe_clears_entire_stack", false)
-        set(v) = sp.edit().putBoolean("swipe_clears_entire_stack", v).apply()
-
     /** Panel header appearance. Keep the old title and full date unless customized. */
     var headerShowTitle: Boolean
         get() = sp.getBoolean("header_show_title", true)

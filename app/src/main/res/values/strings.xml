@@ -79,8 +79,6 @@
     <string name="handle_landscape">Hide in landscape</string>
     <string name="tile_hint">You can also add the “Chronotif” tile to Quick Settings.</string>
     <string name="open_panel">Open panel now</string>
-    <string name="swipe_clear_stack_title">Swipe clears entire stack</string>
-    <string name="swipe_clear_stack_desc">Off: swiping a collapsed stack removes only its newest notification or message. On: it clears the whole stack. The Clear buttons still clear all. Individual messages hidden from a conversation remain in the Android notification shade.</string>
 
     <!-- Panel header subpage -->
     <string name="header_settings_title">Header appearance</string>

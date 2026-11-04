@@ -278,16 +278,11 @@ class NotifList(
                 openStacks += stackId
                 render()
             }
-            // A collapsed visual app stack is not one Android notification.
-            // Default to its top entry, leaving the other notifications intact.
-            // The explicit stack/header × remains the way to clear everything.
-            v.card.swipeAllowed = {
-                val targets = if (Prefs.swipeClearsEntireStack) entries else listOf(top.e)
-                targets.any { it.clearable }
-            }
-            v.card.onSwiped = {
-                dismissAll(if (Prefs.swipeClearsEntireStack) entries else listOf(top.e))
-            }
+            // The visible card represents the entire collapsed stack. Swiping it
+            // explicitly clears its entries; once expanded, individual cards
+            // call onDismiss(e) and only cancel their own notification keys.
+            v.card.swipeAllowed = { entries.any { it.clearable } }
+            v.card.onSwiped = { dismissAll(entries) }
             val msg = top.msgs?.single()
             if (msg != null) {
                 v.card.bind(top.e, top.c.forMessage(msg), CardView.Style.RECEDED, false, -1, now, id = "$stackId#top", at = msg.time)
@@ -336,17 +331,13 @@ class NotifList(
                     openStacks += stackId
                     render()
                 }
-                // A conversation stack contains multiple messages in ONE Android
-                // notification. Swiping one message can only hide it in Chronotif;
-                // Android has no API to cancel an individual message. Preserve the
-                // other messages unless the user opts into bulk stack dismissal.
-                v.card.swipeAllowed = {
-                    !Prefs.swipeClearsEntireStack || e.clearable
-                }
-                v.card.onSwiped = {
-                    if (Prefs.swipeClearsEntireStack) dismissAll(listOf(e))
-                    else NotifStore.hideMessage(e.key, latest.id)
-                }
+                // A collapsed conversation represents ONE Android notification.
+                // Swiping the entire stack clears that notification (all messages).
+                // Expanded message cards use hideMessage to hide only that one
+                // message locally, since Android cannot cancel an individual
+                // message within a MessagingStyle notification.
+                v.card.swipeAllowed = { e.clearable }
+                v.card.onSwiped = { dismissAll(listOf(e)) }
                 v.card.bind(e, c.forMessage(latest), style, false, -1, now, id = "$stackId#top", at = latest.time)
                 // The thumbnail is the latest message's photo; "+n" counts the others inside.
                 if (latest.attachment != null) v.card.showMorePhotos(msgs.count { it.attachment != null } - 1)
