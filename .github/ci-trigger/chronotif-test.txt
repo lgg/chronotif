@@ -14,3 +14,5 @@ Chronotif Test / 11: build work/media-dismiss-next commit 0530af7604457fb433f1af
 Chronotif Test / 12: build work/media-dismiss-next at 3a7df75dd7a238a0aa606f9665edf654a80a99bd; verify package ID, incremented versionCode and signing certificate against Test / 11.
 
 Chronotif Test / 13: fix painted glyph alignment from work/media-dismiss-next commit 89b24a95e485db5dbed84308e41800eae123d766. Verify in-place upgrade from Test / 12 (same package and signing certificate, higher versionCode).
+
+Chronotif Test / 14: single-item swipe in collapsed Earlier App stacks by default, optional bulk-swipe. Source work/media-dismiss-next commit 784ba8e7b2fa8f0bc5d94bc61e06ef1f0edbefaf; verify upgrade from Test / 13.

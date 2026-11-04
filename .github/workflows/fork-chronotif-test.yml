@@ -107,12 +107,12 @@ jobs:
             throw 'Debug APK was not produced'
           }
 
-      - name: Verify update compatibility with installed Chronotif Test / 12
+      - name: Verify update compatibility with installed Chronotif Test / 13
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $referenceTag = 'chronotif-test-41743833106-1'
+          $referenceTag = 'chronotif-test-41763041516-1'
           $referenceApk = "$referenceTag.apk"
           $oldDir = Join-Path $env:RUNNER_TEMP 'chronotif-previous-test'
           New-Item -ItemType Directory -Path $oldDir -Force | Out-Null
@@ -148,7 +148,7 @@ jobs:
           $oldDigest = [regex]::Match($oldSigner, $digestPattern)
           $newDigest = [regex]::Match($newSigner, $digestPattern)
           if (-not $oldDigest.Success -or -not $newDigest.Success -or $oldDigest.Groups[1].Value -ne $newDigest.Groups[1].Value) {
-            throw 'Signing certificate differs from Chronotif Test / 12: cannot update installed app'
+            throw 'Signing certificate differs from Chronotif Test / 13: cannot update installed app'
           }
           Write-Host "PACKAGE OK: app.chronotif.dev"
           Write-Host "VERSION OK: $oldCode -> $newCode"
@@ -166,7 +166,7 @@ jobs:
           Copy-Item 'app\build\outputs\apk\debug\app-debug.apk' $apk
           $hash = (Get-FileHash $apk -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  $apk" | Set-Content "$apk.sha256" -Encoding ASCII
-          & "$env:GH_CLI_EXE" release create $tag $apk "$apk.sha256" --target $sourceSha --title "Chronotif Test / 13 - Pixel-Aligned Date" --notes 'Fork-only Windows self-hosted test build; app.chronotif.dev installs alongside official Chronotif. Upgrade-compatible app.chronotif.dev build from work/media-dismiss-next. Fixes Top / Center / Bottom positioning to match actual painted glyph edges of clock digits, not TextView bounds, across large font sizes and wrapping dates. Keeps all Header appearance settings and media swipe behavior. Previous Chronotif Test / 12 APK, version and signing certificate are compared before publishing. Preserves the working media dismiss implementation. Built on the same Windows runner as previous Test releases.' --prerelease --latest=false
+          & "$env:GH_CLI_EXE" release create $tag $apk "$apk.sha256" --target $sourceSha --title "Chronotif Test / 14 - Single Swipe Dismissal" --notes 'Fork-only Windows self-hosted test build; app.chronotif.dev installs alongside official Chronotif. Upgrade-compatible app.chronotif.dev build from work/media-dismiss-next. Adds an opt-in setting to clear entire Earlier app/conversation stacks on swipe; default swipe now affects only the top notification or message. Explicit clear buttons still clear all. Preserves glyph-aligned date, header controls, and media behavior. Previous Chronotif Test / 13 APK, version and signing certificate are compared before publishing. Preserves the working media dismiss implementation. Built on the same Windows runner as previous Test releases.' --prerelease --latest=false
           if ($LASTEXITCODE -ne 0) { throw "Release creation failed with exit code $LASTEXITCODE" }
 
       - name: Save backup APK in Actions
