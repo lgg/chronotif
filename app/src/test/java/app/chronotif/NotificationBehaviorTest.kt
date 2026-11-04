@@ -643,6 +643,58 @@ class NotificationBehaviorTest {
     }
 
     @Test
+    fun defaultSwipeIsOneNotificationAndBulkSwipeIsOptIn() {
+        assertFalse(Prefs.swipeClearsEntireStack)
+        fun item(label: String) = Notification.Builder(context, "tasks")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Task").setContentText(label).build()
+        val first = post(item("first task"), time = 1000, id = 101, pkg = "example.tasks")
+        val second = post(item("second task"), time = 2000, id = 102, pkg = "example.tasks")
+        val third = post(item("third task"), time = 3000, id = 103, pkg = "example.tasks")
+        Prefs.markChecked(4000)
+        withPanelList { list, container ->
+            list.render()
+            val collapsed = views(container).filterIsInstance<app.chronotif.ui.StackView>()
+                .single { it.isShownInTree() }
+            collapsed.card.onSwiped()
+            val pending = ReflectionHelpers.getField<Set<String>>(list, "pendingDismiss")
+            assertEquals("A normal swipe must dismiss just the visible notification",
+                setOf(third.key), pending.toSet())
+            assertFalse(first.key in pending)
+            assertFalse(second.key in pending)
+        }
+        // Same existing notifications, but an explicit opt-in returns to bulk swipe.
+        Prefs.swipeClearsEntireStack = true
+        withPanelList { list, container ->
+            list.render()
+            val collapsed = views(container).filterIsInstance<app.chronotif.ui.StackView>()
+                .single { it.isShownInTree() }
+            collapsed.card.onSwiped()
+            val pending = ReflectionHelpers.getField<Set<String>>(list, "pendingDismiss")
+            assertEquals(setOf(first.key, second.key, third.key), pending.toSet())
+        }
+    }
+
+    @Test
+    fun collapsedConversationSwipeKeepsEarlierMessagesUnlessBulkEnabled() {
+        val e = post(notification(listOf(
+            "one" to 1100L, "two" to 1200L, "three" to 1300L
+        )), time = 1300, id = 104)
+        Prefs.markChecked(2000)
+        val messages = Content.of(context, e, false).messages
+        withPanelList { list, container ->
+            list.render()
+            val stack = views(container).filterIsInstance<app.chronotif.ui.StackView>()
+                .single { it.isShownInTree() }
+            stack.card.onSwiped()
+            assertEquals(setOf(messages.last().id), NotifStore.hiddenMessages(e.key))
+            assertNotNull("System notification must survive per-message swipe", NotifStore.get(e.key))
+            list.render()
+            assertTrue(shownTexts(container).any { "two" in it })
+        }
+    }
+
+    @Test
     fun aConversationWithEveryMessageHiddenIsNotNew() {
         val e = post(notification(listOf("one" to 1100L, "two" to 1200L)), 1200)
         assertEquals(1, NotifStore.newCount())

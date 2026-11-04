@@ -190,6 +190,10 @@ class SetupActivity : Activity() {
             setOnClickListener { startActivity(Intent(this@SetupActivity, HeaderSettingsActivity::class.java)) }
         }, gap(12).apply { width = -1 })
         body.addView(text(getString(R.string.header_settings_desc), 13f, secondary = true), gap(4))
+        toggle(R.string.swipe_clear_stack_title, R.string.swipe_clear_stack_desc,
+            { Prefs.swipeClearsEntireStack }) {
+            Prefs.swipeClearsEntireStack = it
+        }
         body.addView(text(getString(R.string.tile_hint), 13f, secondary = true), gap(12))
         val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         buttons.addView(Button(this).apply {
