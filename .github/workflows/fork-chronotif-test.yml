@@ -107,12 +107,12 @@ jobs:
             throw 'Debug APK was not produced'
           }
 
-      - name: Verify update compatibility with installed Chronotif Test / 10
+      - name: Verify update compatibility with installed Chronotif Test / 11
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $referenceTag = 'chronotif-test-41732673331-1'
+          $referenceTag = 'chronotif-test-41736909453-1'
           $referenceApk = "$referenceTag.apk"
           $oldDir = Join-Path $env:RUNNER_TEMP 'chronotif-previous-test'
           New-Item -ItemType Directory -Path $oldDir -Force | Out-Null
@@ -148,7 +148,7 @@ jobs:
           $oldDigest = [regex]::Match($oldSigner, $digestPattern)
           $newDigest = [regex]::Match($newSigner, $digestPattern)
           if (-not $oldDigest.Success -or -not $newDigest.Success -or $oldDigest.Groups[1].Value -ne $newDigest.Groups[1].Value) {
-            throw 'Signing certificate differs from Chronotif Test / 10: cannot update installed app'
+            throw 'Signing certificate differs from Chronotif Test / 11: cannot update installed app'
           }
           Write-Host "PACKAGE OK: app.chronotif.dev"
           Write-Host "VERSION OK: $oldCode -> $newCode"
@@ -166,7 +166,7 @@ jobs:
           Copy-Item 'app\build\outputs\apk\debug\app-debug.apk' $apk
           $hash = (Get-FileHash $apk -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  $apk" | Set-Content "$apk.sha256" -Encoding ASCII
-          & "$env:GH_CLI_EXE" release create $tag $apk "$apk.sha256" --target $sourceSha --title "Chronotif Test / 11 - Clock Size and Side Date" --notes 'Fork-only Windows self-hosted test build; app.chronotif.dev installs alongside official Chronotif. Upgrade-compatible app.chronotif.dev build from work/media-dismiss-next. Extends Header appearance with a 32-112 sp adjustable clock and optional date to the right of the clock. When the clock is hidden the date stays left aligned. All previous header and media swipe features remain. Previous Chronotif Test / 10 APK, version and signing certificate are compared before publishing. Preserves the working media dismiss implementation. Built on the same Windows runner as previous Test releases.' --prerelease --latest=false
+          & "$env:GH_CLI_EXE" release create $tag $apk "$apk.sha256" --target $sourceSha --title "Chronotif Test / 12 - Date Alignment" --notes 'Fork-only Windows self-hosted test build; app.chronotif.dev installs alongside official Chronotif. Upgrade-compatible app.chronotif.dev build from work/media-dismiss-next. Extends Header appearance with Top / Center / Bottom alignment for the date beside the large clock, defaulting to Center. Alignment is disabled unless both clock and side-date are enabled. Keeps clock sizing, localization and media swipe. Previous Chronotif Test / 11 APK, version and signing certificate are compared before publishing. Preserves the working media dismiss implementation. Built on the same Windows runner as previous Test releases.' --prerelease --latest=false
           if ($LASTEXITCODE -ne 0) { throw "Release creation failed with exit code $LASTEXITCODE" }
 
       - name: Save backup APK in Actions

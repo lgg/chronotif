@@ -10,3 +10,5 @@ Chronotif Test / 10: build work/media-dismiss-next at 5f390dfcf98f2cd6c6acc3c693
 Retry Test / 10 after Android resources fix: work/media-dismiss-next commit 9a7d57a2ff6e87dcc40bf3b7dea46a17fa35aea6; compare package/version/signature against Test / 9.
 
 Chronotif Test / 11: build work/media-dismiss-next commit 0530af7604457fb433f1af2838f96b48a6ab143d; compare package ID, version and signing against Test / 10.
+
+Chronotif Test / 12: build work/media-dismiss-next at 3a7df75dd7a238a0aa606f9665edf654a80a99bd; verify package ID, incremented versionCode and signing certificate against Test / 11.
