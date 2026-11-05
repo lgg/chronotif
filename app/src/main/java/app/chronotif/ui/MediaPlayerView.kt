@@ -26,6 +26,7 @@ import android.widget.SeekBar
 import app.chronotif.Apps
 import app.chronotif.Content
 import app.chronotif.Entry
+import app.chronotif.MediaActionHintCache
 import app.chronotif.MediaDismiss
 import app.chronotif.R
 import kotlin.math.abs
@@ -59,8 +60,18 @@ class MediaPlayerView(context: Context, private val cb: CardCallbacks) : LinearL
     private var swipeInterceptArmed = false
     private var swipeDownX = 0f
     private var swipeDownY = 0f
+    private val actionHintCache = MediaActionHintCache()
 
-    val swipe = SwipeDismiss({ entry?.let { MediaDismiss.canSwipe(it, controller?.playbackState, context) } == true }, { entry?.let(cb::onDismiss) })
+    private fun canSwipe(): Boolean {
+        val current = entry ?: return false
+        val playback = controller?.playbackState
+        val hint = if (MediaDismiss.needsPlayActionHint(current, playback?.state)) {
+            actionHintCache.forNotification(current.n, context)
+        } else null
+        return MediaDismiss.canSwipe(current, playback, context, hint)
+    }
+
+    val swipe = SwipeDismiss({ canSwipe() }, { entry?.let(cb::onDismiss) })
 
     private val callback = object : MediaController.Callback() {
         override fun onPlaybackStateChanged(state: PlaybackState?) = refresh()
@@ -144,14 +155,12 @@ class MediaPlayerView(context: Context, private val cb: CardCallbacks) : LinearL
                 swipeDownX = event.rawX
                 swipeDownY = event.rawY
                 swipeInterceptArmed = !swipe.dismissing &&
-                    entry?.let { MediaDismiss.canSwipe(it, controller?.playbackState, context) } == true &&
+                    canSwipe() &&
                     !touchesSeekBar(event)
                 if (swipeInterceptArmed) swipe.onTouch(this, event)
             }
             MotionEvent.ACTION_MOVE -> {
-                if (swipeInterceptArmed &&
-                    entry?.let { MediaDismiss.canSwipe(it, controller?.playbackState, context) } == true
-                ) {
+                if (swipeInterceptArmed && canSwipe()) {
                     val dx = event.rawX - swipeDownX
                     val dy = event.rawY - swipeDownY
                     val slop = ViewConfiguration.get(context).scaledTouchSlop
@@ -173,6 +182,8 @@ class MediaPlayerView(context: Context, private val cb: CardCallbacks) : LinearL
 
     fun bind(e: Entry, c: Content) {
         if (entry?.key != e.key) swipe.reset(this)
+        // A notification update can reuse the key (and, on some devices, its object).
+        actionHintCache.invalidate()
         entry = e
         content = c
         val token = if (Build.VERSION.SDK_INT >= 33) {
@@ -197,6 +208,7 @@ class MediaPlayerView(context: Context, private val cb: CardCallbacks) : LinearL
 
     override fun onDetachedFromWindow() {
         controller?.unregisterCallback(callback)
+        actionHintCache.invalidate()
         removeCallbacks(ticker)
         super.onDetachedFromWindow()
     }
