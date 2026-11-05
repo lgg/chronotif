@@ -2,13 +2,19 @@
 
 package app.chronotif
 
+import android.app.Application
 import android.app.Notification
 import android.media.session.PlaybackState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35], application = Application::class)
 class MediaActionHintCacheTest {
     @Test
     fun cachesOneResultPerNotificationAndInvalidatesOnRebind() {
