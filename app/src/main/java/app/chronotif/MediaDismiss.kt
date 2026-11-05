@@ -23,13 +23,29 @@ import java.util.Locale
  * listener hasn't reported removal after the dismissal animation.
  */
 object MediaDismiss {
-    fun canSwipe(entry: Entry, playback: PlaybackState?, context: Context? = null): Boolean =
-        entry.kind == Kind.MEDIA && MediaSwipePolicy.canAttempt(
-            playback?.state,
-            entry.clearable,
-            entry.n.deleteIntent != null,
-            MediaActionSignal.hasPlayWithoutPause(entry.n, context),
+    /**
+     * The optional hint is computed once per notification by MediaPlayerView.
+     * Playback remains live: never cache the whole swipe eligibility decision.
+     */
+    fun canSwipe(
+        entry: Entry, playback: PlaybackState?, context: Context? = null,
+        hasPlayActionHint: Boolean? = null,
+    ): Boolean {
+        if (entry.kind != Kind.MEDIA) return false
+        val state = playback?.state
+        val hint = if (needsPlayActionHint(entry, state)) {
+            hasPlayActionHint ?: MediaActionSignal.hasPlayWithoutPause(entry.n, context)
+        } else false
+        return MediaSwipePolicy.canAttempt(
+            state, entry.clearable, entry.n.deleteIntent != null, hint,
         )
+    }
+
+    /** Only an unknown playback state on protected, app-dismissible media needs action metadata. */
+    internal fun needsPlayActionHint(entry: Entry, state: Int?): Boolean =
+        entry.kind == Kind.MEDIA && !entry.clearable &&
+            entry.n.deleteIntent != null &&
+            (state == null || state == PlaybackState.STATE_NONE)
 
     /** A small boundary for testing the *real* dismissal decision without a bound system service. */
     internal interface Gateway {
@@ -61,9 +77,12 @@ object MediaDismiss {
         val token = mediaToken(live.n)
         if (mediaToken(entry.n) != token) return false
         val state = token?.let { gateway.playbackState(context, it) }
+        // Re-evaluate the *live* notification: a UI hint must never authorize dismissal.
+        val hint = if (needsPlayActionHint(live, state)) {
+            MediaActionSignal.hasPlayWithoutPause(live.n, context)
+        } else false
         if (!MediaSwipePolicy.canAttempt(
-                state, live.clearable, live.n.deleteIntent != null,
-                MediaActionSignal.hasPlayWithoutPause(live.n, context),
+                state, live.clearable, live.n.deleteIntent != null, hint,
             )
         ) return false
         if (!gateway.listenerConnected()) return false
@@ -115,6 +134,31 @@ internal object MediaSwipePolicy {
             null, PlaybackState.STATE_NONE -> hasPlayAction
             else -> false
         }
+    }
+}
+
+/**
+ * The action hint is stable during a gesture, unlike playback state.
+ * A new notification or a rebind invalidates it. This cache belongs to one view,
+ * so unrelated media notifications cannot share a hint.
+ */
+internal class MediaActionHintCache(
+    private val resolve: (Notification, Context?) -> Boolean = MediaActionSignal::hasPlayWithoutPause,
+) {
+    private var notification: Notification? = null
+    private var cachedValue = false
+
+    fun forNotification(current: Notification, context: Context?): Boolean {
+        if (notification !== current) {
+            val value = resolve(current, context)
+            notification = current
+            cachedValue = value
+        }
+        return cachedValue
+    }
+
+    fun invalidate() {
+        notification = null
     }
 }
 
